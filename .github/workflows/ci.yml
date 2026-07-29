@@ -1,0 +1,49 @@
+name: Bowser CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  preflight-and-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install Just
+        uses: extractions/setup-just@v2
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright-cli install-browser
+
+      - name: Strict preflight
+        env:
+          BOWSER_STRICT: "1"
+          CI: "true"
+        run: npm run preflight:strict
+
+      - name: CLI smoke
+        run: npm run smoke
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bowser-smoke-artifacts
+          path: artifacts/playwright/
+          if-no-files-found: warn
+          retention-days: 14

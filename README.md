@@ -19,29 +19,43 @@ These are different capabilities, not drop-in replacements.
 # Claude Code
 curl -fsSL https://claude.ai/install.sh | bash   # or: brew install --cask claude-code
 
-# Playwright CLI (July 2026)
-npm install -g @playwright/cli@latest
-playwright-cli install-browser
+# Project-pinned Playwright CLI (July 2026 — preferred)
+cd bowser
+npm install
+npx playwright-cli install-browser
+
+# Optional global CLI (same pin)
+npm install -g @playwright/cli@0.1.17
 
 # Just (operator recipes)
 brew install just
+
+# Secrets (local only)
+cp .env.sample .env   # add ANTHROPIC_API_KEY — never commit .env
 ```
 
 ```bash
-cd bowser
-just preflight    # must pass before demos
-claude            # or: claude --chrome for Claude-Bowser
+just preflight-strict   # production gate
+just smoke              # CLI smoke without Claude
+claude                  # or: claude --chrome for Claude-Bowser
 ```
 
 ## Quick start
 
 ```bash
-just preflight          # environment readiness
+just ci                 # strict preflight + CLI smoke (CI-equivalent)
+just preflight          # environment readiness (warnings allowed)
 just demo-qa            # parallel Playwright QA (hackernews stories)
 just demo-chrome        # observable Chrome demo (needs --chrome)
 just demo-hop           # Amazon cart workflow — stops before purchase
 just demo-blog          # headless blog summarize via hop + Playwright
 ```
+
+## Production / CI
+
+GitHub Actions runs on `main` PRs/pushes: Node 22 → `npm ci` → `preflight:strict` → `smoke` → uploads `artifacts/playwright/`.
+
+Local equivalent: `npm run ci` or `just ci`.
 
 ## Repo map
 

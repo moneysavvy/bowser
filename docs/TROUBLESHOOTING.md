@@ -58,6 +58,8 @@ playwright-cli close-all
 playwright-cli kill-all
 ```
 
-## Agents treat archive as product
+## Secrets hygiene
 
-`archive/` is unsupported. Product surface is `.claude/`, `stories/`, curated `examples/`, `justfile`, `docs/`.
+- Keep keys in `.env` only (gitignored). Use `.env.sample` as the template.
+- Never put `sk-` tokens in `.claude/settings.json` (committed).
+- If a key was ever printed in a terminal/agent log, rotate it.

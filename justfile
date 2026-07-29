@@ -17,6 +17,19 @@ default:
 preflight:
     bash scripts/preflight.sh
 
+# CI-strict preflight (warnings become failures)
+preflight-strict:
+    BOWSER_STRICT=1 bash scripts/preflight.sh
+
+# Deterministic Playwright CLI smoke (no Claude)
+smoke:
+    bash scripts/smoke-cli.sh
+
+# Local CI gate: strict preflight + CLI smoke
+ci:
+    just preflight-strict
+    just smoke
+
 # ─── Live demos (curated) ────────────────────────────────────
 
 # Observable Chrome demo (requires claude --chrome / Chrome MCP)
