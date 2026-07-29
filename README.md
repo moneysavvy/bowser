@@ -2,8 +2,6 @@
 
 Agentic browser automation and UI testing — Skill → Subagent → Command → Just.
 
-Watch the [breakdown video](https://youtu.be/efctPj6bjCY) for the original architecture walkthrough.
-
 ## Modes (pick one)
 
 | Mode | Command | When |
