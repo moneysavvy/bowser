@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Code Diff Viewer</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a1a; --bg2: #1a1a3e; --card: rgba(255,255,255,0.03); --border: rgba(255,255,255,0.08);
+      --accent: #6366f1; --text: #f8fafc; --text2: #94a3b8; --text3: #64748b;
+      --success: #22c55e; --danger: #ef4444; --warning: #f59e0b;
+      --radius: 12px; --radius-sm: 8px; --mono: 'JetBrains Mono', monospace;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'DM Sans', system-ui, sans-serif; background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 100%); color: var(--text); min-height: 100vh; padding: 1.5rem; }
+    .container { max-width: 1400px; margin: 0 auto; }
+    h1 { font-size: 1.5rem; font-weight: 600; margin-bottom: 1.5rem; color: var(--text); }
+    .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+    .input-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .input-card label { display: block; padding: 0.75rem 1rem; font-size: 0.8rem; color: var(--text2); border-bottom: 1px solid var(--border); }
+    .input-card textarea { width: 100%; min-height: 180px; padding: 1rem; background: #0d0d1f; border: none; color: var(--text); font-family: var(--mono); font-size: 0.85rem; line-height: 1.5; resize: vertical; }
+    .input-card textarea:focus { outline: none; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; align-items: center; }
+    .btn { padding: 0.5rem 1rem; border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: all 0.15s; font-family: inherit; border: 1px solid transparent; }
+    .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-primary:hover { background: #5558e3; filter: brightness(1.1); }
+    .btn-secondary { background: rgba(255,255,255,0.06); color: var(--text2); border-color: var(--border); }
+    .btn-secondary:hover { background: rgba(255,255,255,0.1); color: var(--text); }
+    .toggle-wrap { display: flex; align-items: center; gap: 0.5rem; margin-left: auto; }
+    .toggle-wrap span { font-size: 0.8rem; color: var(--text2); }
+    .toggle { position: relative; width: 44px; height: 24px; background: rgba(255,255,255,0.1); border-radius: 12px; cursor: pointer; transition: background 0.2s; }
+    .toggle.active { background: var(--accent); }
+    .toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; background: #fff; border-radius: 50%; transition: transform 0.2s; }
+    .toggle.active::after { transform: translateX(20px); }
+    .stats-bar { display: flex; gap: 1.5rem; padding: 0.75rem 1rem; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 1rem; font-size: 0.85rem; }
+    .stats-bar span { display: flex; align-items: center; gap: 0.5rem; }
+    .stats-bar .add { color: var(--success); }
+    .stats-bar .del { color: var(--danger); }
+    .stats-bar .ctx { color: var(--text3); }
+    .diff-container { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 1rem; }
+    .diff-header { display: flex; padding: 0.75rem 1rem; background: rgba(0,0,0,0.2); border-bottom: 1px solid var(--border); font-size: 0.8rem; color: var(--text2); }
+    .diff-header .left { flex: 1; }
+    .diff-header .right { flex: 1; }
+    .diff-body { display: flex; max-height: 500px; overflow: auto; font-family: var(--mono); font-size: 0.8rem; line-height: 1.6; }
+    .diff-side { flex: 1; min-width: 0; }
+    .diff-line { display: flex; padding: 0 0.5rem; min-height: 24px; align-items: center; }
+    .diff-line .lnum { min-width: 40px; padding-right: 1rem; text-align: right; color: var(--text3); user-select: none; flex-shrink: 0; }
+    .diff-line .content { flex: 1; overflow-x: auto; white-space: pre; word-break: break-all; }
+    .diff-line.added { background: rgba(34,197,94,0.15); }
+    .diff-line.added .lnum { color: var(--success); }
+    .diff-line.deleted { background: rgba(239,68,68,0.15); }
+    .diff-line.deleted .lnum { color: var(--danger); }
+    .diff-line.context { background: transparent; }
+    .diff-line .ch-add { background: rgba(34,197,94,0.4); padding: 0 2px; border-radius: 2px; }
+    .diff-line .ch-del { background: rgba(239,68,68,0.4); padding: 0 2px; border-radius: 2px; text-decoration: line-through; }
+    .unified-view .diff-body { flex-direction: column; }
+    .unified-view .diff-line { border-left: 3px solid transparent; }
+    .unified-view .diff-line.added { border-left-color: var(--success); }
+    .unified-view .diff-line.deleted { border-left-color: var(--danger); }
+    .unified-view .diff-line .lnum { min-width: 50px; }
+    .empty-state { padding: 2rem; text-align: center; color: var(--text3); font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Code Diff Viewer</h1>
+    <div class="input-row">
+      <div class="input-card">
+        <label>Original</label>
+        <textarea id="original" placeholder="Paste original code..."></textarea>
+      </div>
+      <div class="input-card">
+        <label>Modified</label>
+        <textarea id="modified" placeholder="Paste modified code..."></textarea>
+      </div>
+    </div>
+    <div class="toolbar">
+      <button class="btn btn-primary" id="compare">Compare</button>
+      <button class="btn btn-secondary" id="swap">Swap</button>
+      <button class="btn btn-secondary" id="clear">Clear</button>
+      <button class="btn btn-secondary" id="copy">Copy Diff</button>
+      <div class="toggle-wrap">
+        <span>Side-by-side</span>
+        <div class="toggle" id="unifiedToggle" title="Toggle unified view"></div>
+        <span>Unified</span>
+      </div>
+    </div>
+    <div class="stats-bar" id="stats" style="display:none;">
+      <span class="add"><strong id="addCount">0</strong> additions</span>
+      <span class="del"><strong id="delCount">0</strong> deletions</span>
+      <span class="ctx"><strong id="ctxCount">0</strong> unchanged</span>
+    </div>
+    <div class="diff-container" id="diffContainer">
+      <div class="diff-header">
+        <span class="left">Original</span>
+        <span class="right">Modified</span>
+      </div>
+      <div class="diff-body" id="diffBody">
+        <div class="empty-state" id="emptyState">Enter code in both panels and click Compare to see the diff.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SAMPLE_ORIGINAL = `function greet(name) {
+  return "Hello, " + name + "!";
+}
+
+function add(a, b) {
+  return a + b;
+}`;
+
+    const SAMPLE_MODIFIED = `function greet(name) {
+  return \`Hello, \${name}!\`;
+}
+
+function add(a, b) {
+  return a + b;
+}
+
+function multiply(a, b) {
+  return a * b;
+}`;
+
+    const originalEl = document.getElementById('original');
+    const modifiedEl = document.getElementById('modified');
+    const compareBtn = document.getElementById('compare');
+    const swapBtn = document.getElementById('swap');
+    const clearBtn = document.getElementById('clear');
+    const copyBtn = document.getElementById('copy');
+    const unifiedToggle = document.getElementById('unifiedToggle');
+    const statsBar = document.getElementById('stats');
+    const addCountEl = document.getElementById('addCount');
+    const delCountEl = document.getElementById('delCount');
+    const ctxCountEl = document.getElementById('ctxCount');
+    const diffBody = document.getElementById('diffBody');
+    const emptyState = document.getElementById('emptyState');
+
+    originalEl.value = SAMPLE_ORIGINAL;
+    modifiedEl.value = SAMPLE_MODIFIED;
+
+    function lcs(a, b) {
+      const m = a.length, n = b.length;
+      const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+      for (let i = 1; i <= m; i++) {
+        for (let j = 1; j <= n; j++) {
+          if (a[i - 1] === b[j - 1]) dp[i][j] = dp[i - 1][j - 1] + 1;
+          else dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+        }
+      }
+      const seq = [];
+      let i = m, j = n;
+      while (i > 0 && j > 0) {
+        if (a[i - 1] === b[j - 1]) { seq.unshift([i - 1, j - 1]); i--; j--; }
+        else if (dp[i - 1][j] >= dp[i][j - 1]) i--;
+        else j--;
+      }
+      return seq;
+    }
+
+    function charDiff(a, b) {
+      const aChars = Array.from(a);
+      const bChars = Array.from(b);
+      const pairs = lcs(aChars, bChars);
+      const aSet = new Set(pairs.map(([x]) => x));
+      const bSet = new Set(pairs.map(([, y]) => y));
+      let aHtml = '', bHtml = '';
+      for (let i = 0; i < aChars.length; i++) {
+        if (aSet.has(i)) aHtml += escapeHtml(aChars[i]);
+        else aHtml += '<span class="ch-del">' + escapeHtml(aChars[i]) + '</span>';
+      }
+      for (let i = 0; i < bChars.length; i++) {
+        if (bSet.has(i)) bHtml += escapeHtml(bChars[i]);
+        else bHtml += '<span class="ch-add">' + escapeHtml(bChars[i]) + '</span>';
+      }
+      return { a: aHtml, b: bHtml };
+    }
+
+    function escapeHtml(s) {
+      const d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    function computeDiff(origLines, modLines) {
+      const pairs = lcs(origLines, modLines);
+      const origMatched = new Set(pairs.map(([x]) => x));
+      const modMatched = new Set(pairs.map(([, y]) => y));
+      const result = [];
+      let i = 0, j = 0;
+      while (i < origLines.length || j < modLines.length) {
+        if (i >= origLines.length) {
+          result.push({ type: 'added', orig: null, mod: modLines[j], origNum: null, modNum: j + 1 });
+          j++;
+          continue;
+        }
+        if (j >= modLines.length) {
+          result.push({ type: 'deleted', orig: origLines[i], mod: null, origNum: i + 1, modNum: null });
+          i++;
+          continue;
+        }
+        const origLine = origLines[i];
+        const modLine = modLines[j];
+        const origInLcs = origMatched.has(i);
+        const modInLcs = modMatched.has(j);
+        if (origInLcs && modInLcs) {
+          result.push({ type: 'context', orig: origLine, mod: modLine, origNum: i + 1, modNum: j + 1 });
+          i++; j++;
+        } else if (!origInLcs && modInLcs) {
+          result.push({ type: 'deleted', orig: origLine, mod: null, origNum: i + 1, modNum: null });
+          i++;
+        } else if (origInLcs && !modInLcs) {
+          result.push({ type: 'added', orig: null, mod: modLine, origNum: null, modNum: j + 1 });
+          j++;
+        } else {
+          const charD = charDiff(origLine || '', modLine || '');
+          result.push({ type: 'changed', orig: origLine, mod: modLine, origNum: i + 1, modNum: j + 1, charDiff: charD });
+          i++; j++;
+        }
+      }
+      return result;
+    }
+
+    function renderDiff(diff, unified) {
+      let addCount = 0, delCount = 0, ctxCount = 0;
+      diff.forEach(d => {
+        if (d.type === 'added') addCount++;
+        else if (d.type === 'deleted') delCount++;
+        else if (d.type === 'changed') { addCount++; delCount++; }
+        else ctxCount++;
+      });
+
+      addCountEl.textContent = addCount;
+      delCountEl.textContent = delCount;
+      ctxCountEl.textContent = ctxCount;
+      statsBar.style.display = 'flex';
+
+      emptyState.style.display = 'none';
+      diffBody.innerHTML = '';
+      diffBody.classList.toggle('unified-view', unified);
+
+      if (unified) {
+        const wrap = document.createElement('div');
+        wrap.className = 'diff-side';
+        diff.forEach(d => {
+          if (d.type === 'deleted') {
+            const ln = document.createElement('div');
+            ln.className = 'diff-line deleted';
+            ln.innerHTML = '<span class="lnum">' + (d.origNum || '-') + '</span><span class="content">' + (d.charDiff ? d.charDiff.a : escapeHtml(d.orig || '')) + '</span>';
+            wrap.appendChild(ln);
+          } else if (d.type === 'added') {
+            const ln = document.createElement('div');
+            ln.className = 'diff-line added';
+            ln.innerHTML = '<span class="lnum">' + (d.modNum || '+') + '</span><span class="content">' + (d.charDiff ? d.charDiff.b : escapeHtml(d.mod || '')) + '</span>';
+            wrap.appendChild(ln);
+          } else if (d.type === 'changed') {
+            const lnDel = document.createElement('div');
+            lnDel.className = 'diff-line deleted';
+            lnDel.innerHTML = '<span class="lnum">' + d.origNum + '</span><span class="content">' + (d.charDiff ? d.charDiff.a : escapeHtml(d.orig || '')) + '</span>';
+            wrap.appendChild(lnDel);
+            const lnAdd = document.createElement('div');
+            lnAdd.className = 'diff-line added';
+            lnAdd.innerHTML = '<span class="lnum">' + d.modNum + '</span><span class="content">' + (d.charDiff ? d.charDiff.b : escapeHtml(d.mod || '')) + '</span>';
+            wrap.appendChild(lnAdd);
+          } else {
+            const ln = document.createElement('div');
+            ln.className = 'diff-line context';
+            ln.innerHTML = '<span class="lnum">' + d.origNum + '</span><span class="content">' + escapeHtml(d.orig || '') + '</span>';
+            wrap.appendChild(ln);
+          }
+        });
+        diffBody.appendChild(wrap);
+      } else {
+        const left = document.createElement('div');
+        left.className = 'diff-side';
+        const right = document.createElement('div');
+        right.className = 'diff-side';
+        diff.forEach(d => {
+          if (d.type === 'deleted') {
+            const ln = document.createElement('div');
+            ln.className = 'diff-line deleted';
+            ln.innerHTML = '<span class="lnum">' + (d.origNum || '') + '</span><span class="content">' + (d.charDiff ? d.charDiff.a : escapeHtml(d.orig || '')) + '</span>';
+            left.appendChild(ln);
+            const empty = document.createElement('div');
+            empty.className = 'diff-line';
+            empty.innerHTML = '<span class="lnum"></span><span class="content"></span>';
+            right.appendChild(empty);
+          } else if (d.type === 'added') {
+            const empty = document.createElement('div');
+            empty.className = 'diff-line';
+            empty.innerHTML = '<span class="lnum"></span><span class="content"></span>';
+            left.appendChild(empty);
+            const ln = document.createElement('div');
+            ln.className = 'diff-line added';
+            ln.innerHTML = '<span class="lnum">' + (d.modNum || '') + '</span><span class="content">' + (d.charDiff ? d.charDiff.b : escapeHtml(d.mod || '')) + '</span>';
+            right.appendChild(ln);
+          } else if (d.type === 'changed') {
+            const lnL = document.createElement('div');
+            lnL.className = 'diff-line deleted';
+            lnL.innerHTML = '<span class="lnum">' + d.origNum + '</span><span class="content">' + (d.charDiff ? d.charDiff.a : escapeHtml(d.orig || '')) + '</span>';
+            left.appendChild(lnL);
+            const lnR = document.createElement('div');
+            lnR.className = 'diff-line added';
+            lnR.innerHTML = '<span class="lnum">' + d.modNum + '</span><span class="content">' + (d.charDiff ? d.charDiff.b : escapeHtml(d.mod || '')) + '</span>';
+            right.appendChild(lnR);
+          } else {
+            const lnL = document.createElement('div');
+            lnL.className = 'diff-line context';
+            lnL.innerHTML = '<span class="lnum">' + d.origNum + '</span><span class="content">' + escapeHtml(d.orig || '') + '</span>';
+            left.appendChild(lnL);
+            const lnR = document.createElement('div');
+            lnR.className = 'diff-line context';
+            lnR.innerHTML = '<span class="lnum">' + d.modNum + '</span><span class="content">' + escapeHtml(d.mod || '') + '</span>';
+            right.appendChild(lnR);
+          }
+        });
+        diffBody.appendChild(left);
+        diffBody.appendChild(right);
+      }
+    }
+
+    function toUnifiedDiff(origLines, modLines, diff) {
+      let out = '--- original\n+++ modified\n';
+      let origStart = 1, modStart = 1, origCount = 0, modCount = 0;
+      const lines = [];
+      diff.forEach(d => {
+        if (d.type === 'context') {
+          lines.push(' ' + (d.orig || ''));
+          origCount++; modCount++;
+        } else if (d.type === 'deleted') {
+          lines.push('-' + (d.orig || ''));
+          origCount++;
+        } else if (d.type === 'added') {
+          lines.push('+' + (d.mod || ''));
+          modCount++;
+        } else if (d.type === 'changed') {
+          lines.push('-' + (d.orig || ''));
+          lines.push('+' + (d.mod || ''));
+          origCount++; modCount++;
+        }
+      });
+      if (lines.length) out += `@@ -${origStart},${origCount} +${modStart},${modCount} @@\n` + lines.join('\n') + '\n';
+      return out;
+    }
+
+    let lastDiff = null;
+    let lastOrig = null, lastMod = null;
+
+    function runCompare() {
+      const orig = originalEl.value.split('\n');
+      const mod = modifiedEl.value.split('\n');
+      lastOrig = orig;
+      lastMod = mod;
+      lastDiff = computeDiff(orig, mod);
+      renderDiff(lastDiff, unifiedToggle.classList.contains('active'));
+    }
+
+    compareBtn.addEventListener('click', runCompare);
+    swapBtn.addEventListener('click', () => {
+      const t = originalEl.value;
+      originalEl.value = modifiedEl.value;
+      modifiedEl.value = t;
+      runCompare();
+    });
+    clearBtn.addEventListener('click', () => {
+      originalEl.value = '';
+      modifiedEl.value = '';
+      lastDiff = null;
+      statsBar.style.display = 'none';
+      diffBody.innerHTML = '';
+      emptyState.style.display = 'block';
+      diffBody.classList.remove('unified-view');
+    });
+    copyBtn.addEventListener('click', () => {
+      if (!lastDiff || !lastOrig || !lastMod) {
+        runCompare();
+      }
+      if (lastDiff) {
+        const txt = toUnifiedDiff(lastOrig, lastMod, lastDiff);
+        navigator.clipboard.writeText(txt).then(() => {
+          copyBtn.textContent = 'Copied!';
+          setTimeout(() => { copyBtn.textContent = 'Copy Diff'; }, 1500);
+        });
+      }
+    });
+    unifiedToggle.addEventListener('click', () => {
+      unifiedToggle.classList.toggle('active');
+      if (lastDiff) renderDiff(lastDiff, unifiedToggle.classList.contains('active'));
+    });
+
+    runCompare();
+  </script>
+</body>
+</html>

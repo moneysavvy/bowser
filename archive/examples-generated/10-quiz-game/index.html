@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz Game</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-gradient-start: #0f0f23;
+      --bg-gradient-mid: #1a1a3e;
+      --bg-gradient-end: #0d0d1f;
+      --card-bg: rgba(255, 255, 255, 0.03);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --accent: #6366f1;
+      --accent-hover: #818cf8;
+      --accent-glow: rgba(99, 102, 241, 0.4);
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --danger: #ef4444;
+      --danger-hover: #f87171;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-mid) 50%, var(--bg-gradient-end) 100%);
+      color: var(--text-primary);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.15), transparent);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    #app {
+      width: 100%;
+      max-width: 560px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .header { text-align: center; margin-bottom: 2rem; animation: fadeSlideDown 0.6s ease-out; }
+    .header h1 {
+      font-size: 2.5rem; font-weight: 700;
+      background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; letter-spacing: -0.02em;
+    }
+    .header p { color: var(--text-secondary); margin-top: 0.5rem; font-size: 0.95rem; }
+
+    .badge {
+      display: inline-block; margin-top: 0.75rem; padding: 0.25rem 0.75rem;
+      background: rgba(99, 102, 241, 0.2); border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: 999px; font-size: 0.75rem; color: #a5b4fc;
+    }
+
+    .card {
+      background: var(--card-bg); border: 1px solid var(--card-border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+      backdrop-filter: blur(12px); overflow: hidden;
+      animation: fadeSlideUp 0.5s ease-out 0.2s both;
+    }
+
+    .btn {
+      padding: 0.875rem 1.5rem; border: none; border-radius: var(--radius-sm);
+      color: white; font-weight: 600; font-size: 0.95rem; cursor: pointer;
+      transition: var(--transition); white-space: nowrap; font-family: inherit;
+    }
+    .btn-primary { background: linear-gradient(135deg, var(--accent), #4f46e5); }
+    .btn-primary:hover { background: linear-gradient(135deg, var(--accent-hover), #6366f1); transform: translateY(-1px); box-shadow: 0 4px 12px var(--accent-glow); }
+    .btn-ghost { background: rgba(255,255,255,0.06); border: 1px solid var(--card-border); }
+    .btn-ghost:hover { background: rgba(255,255,255,0.1); }
+    .btn-ghost.active { background: var(--accent); border-color: var(--accent); }
+    .btn-danger { background: var(--danger); }
+    .btn-danger:hover { background: var(--danger-hover); }
+    .btn-sm { padding: 0.5rem 1rem; font-size: 0.8rem; }
+
+    .input {
+      flex: 1; padding: 0.875rem 1rem;
+      background: rgba(255, 255, 255, 0.05); border: 1px solid var(--card-border);
+      border-radius: var(--radius-sm); color: var(--text-primary);
+      font-size: 1rem; font-family: inherit; transition: var(--transition);
+    }
+    .input::placeholder { color: var(--text-muted); }
+    .input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+
+    .row { display: flex; gap: 0.75rem; padding: 1.25rem; }
+    .row-border { border-bottom: 1px solid var(--card-border); }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+
+    .stat-card {
+      background: var(--card-bg); border: 1px solid var(--card-border);
+      border-radius: var(--radius); padding: 1.25rem;
+      transition: var(--transition);
+    }
+    .stat-card:hover { border-color: rgba(99, 102, 241, 0.3); transform: translateY(-2px); }
+    .stat-value { font-size: 1.75rem; font-weight: 700; color: var(--accent); }
+    .stat-label { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; }
+
+    .empty { text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.9rem; }
+
+    @keyframes fadeSlideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+    @media (max-width: 640px) {
+      .header h1 { font-size: 1.75rem; }
+      .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+      .row { padding: 1rem; }
+    }
+
+    .quiz-container{max-width:640px;margin:0 auto}.progress-bar{height:4px;background:rgba(255,255,255,0.1);border-radius:2px;margin-bottom:2rem;overflow:hidden}.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),#818cf8);transition:width 0.3s ease;border-radius:2px}.timer-bar{height:6px;background:rgba(255,255,255,0.1);border-radius:3px;margin-bottom:1.5rem;overflow:hidden;transition:background 0.3s}.timer-fill{height:100%;background:var(--accent);transition:width 0.1s linear;border-radius:3px}.timer-fill.urgent{background:var(--danger);animation:pulse 0.5s infinite}.question-card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--radius);padding:2rem}.question-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem}.question-number{color:var(--text-muted);font-size:0.85rem;text-transform:uppercase;letter-spacing:0.05em}.score-display{background:rgba(99,102,241,0.2);padding:0.35rem 0.75rem;border-radius:999px;font-size:0.85rem;color:#a5b4fc}.question-text{font-size:1.35rem;font-weight:600;margin-bottom:1.5rem;line-height:1.4}.answers-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.75rem}.answer-btn{padding:1rem 1.25rem;background:rgba(255,255,255,0.06);border:1px solid var(--card-border);border-radius:var(--radius-sm);color:var(--text-primary);font-size:1rem;text-align:left;cursor:pointer;transition:var(--transition);font-family:inherit}.answer-btn:hover:not(:disabled){background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.15)}.answer-btn:disabled{cursor:default}.answer-btn.correct{background:rgba(34,197,94,0.2);border-color:var(--success);color:var(--success)}.answer-btn.wrong{background:rgba(239,68,68,0.2);border-color:var(--danger);color:var(--danger)}.timer-text{text-align:center;font-size:0.9rem;color:var(--text-muted);margin-top:1rem}.timer-text.urgent{color:var(--danger);font-weight:600}.end-screen{text-align:center;padding:3rem 2rem}.end-score{font-size:4rem;font-weight:700;background:linear-gradient(135deg,#fff,#a5b4fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}.end-label{color:var(--text-muted);margin-top:0.5rem;font-size:1.1rem}.end-message{margin:1.5rem 0;color:var(--text-secondary)}@media(max-width:640px){.answers-grid{grid-template-columns:1fr}.question-text{font-size:1.15rem}}
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="quiz-container" id="quiz">
+  <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+  <div class="timer-bar"><div class="timer-fill" id="timerFill"></div></div>
+  <div class="question-card">
+    <div class="question-meta">
+      <span class="question-number" id="questionNum">Question 1 of 10</span>
+      <span class="score-display">Score: <span id="score">0</span></span>
+    </div>
+    <div class="question-text" id="questionText">Loading...</div>
+    <div class="answers-grid" id="answersGrid"></div>
+    <div class="timer-text" id="timerText">15s remaining</div>
+  </div>
+</div>
+<div class="quiz-container" id="endScreen" style="display:none;">
+  <div class="card">
+    <div class="end-screen">
+      <div class="end-score" id="finalScore">0</div>
+      <div class="end-label">out of 10</div>
+      <div class="end-message" id="endMessage">Nice try!</div>
+      <button class="btn btn-primary" onclick="restartQuiz()">Play Again</button>
+    </div>
+  </div>
+</div>
+  </div>
+  <script>
+    const questions=[{q:"What is the chemical symbol for gold?",a:["Au","Ag","Fe","Cu"],correct:0},{q:"Who invented the World Wide Web?",a:["Bill Gates","Tim Berners-Lee","Steve Jobs","Mark Zuckerberg"],correct:1},{q:"What planet is known as the Red Planet?",a:["Venus","Mars","Jupiter","Saturn"],correct:1},{q:"What is the largest organ in the human body?",a:["Heart","Brain","Liver","Skin"],correct:3},{q:"In what year did the Titanic sink?",a:["1905","1912","1920","1898"],correct:1},{q:"What does CPU stand for?",a:["Central Processing Unit","Computer Personal Unit","Central Program Utility","Core Processing Unit"],correct:0},{q:"What is the speed of light in km/s (approx)?",a:["150,000","300,000","500,000","100,000"],correct:1},{q:"Who painted the Mona Lisa?",a:["Michelangelo","Raphael","Leonardo da Vinci","Donatello"],correct:2},{q:"What gas do plants absorb from the atmosphere?",a:["Oxygen","Nitrogen","Carbon Dioxide","Hydrogen"],correct:2},{q:"What is the capital of Japan?",a:["Seoul","Beijing","Tokyo","Bangkok"],correct:2}];
+let current=0,score=0,timer=null,timeLeft=15,answered=false;
+const progress=document.getElementById('progress');
+const timerFill=document.getElementById('timerFill');
+const questionNum=document.getElementById('questionNum');
+const scoreEl=document.getElementById('score');
+const questionText=document.getElementById('questionText');
+const answersGrid=document.getElementById('answersGrid');
+const timerText=document.getElementById('timerText');
+const quizEl=document.getElementById('quiz');
+const endScreen=document.getElementById('endScreen');
+const finalScore=document.getElementById('finalScore');
+const endMessage=document.getElementById('endMessage');
+function init(){current=0;score=0;showQuestion();}
+function showQuestion(){answered=false;timeLeft=15;questionNum.textContent=`Question ${current+1} of ${questions.length}`;scoreEl.textContent=score;progress.style.width=`${(current/questions.length)*100}%`;const q=questions[current];questionText.textContent=q.q;answersGrid.innerHTML='';q.a.forEach((ans,i)=>{const btn=document.createElement('button');btn.className='answer-btn';btn.textContent=ans;btn.onclick=()=>selectAnswer(i);answersGrid.appendChild(btn);});startTimer();}
+function startTimer(){clearInterval(timer);updateTimerDisplay();timer=setInterval(()=>{timeLeft--;updateTimerDisplay();if(timeLeft<=0){clearInterval(timer);if(!answered){selectAnswer(-1);}}},1000);}
+function updateTimerDisplay(){const pct=(timeLeft/15)*100;timerFill.style.width=`${pct}%`;timerText.textContent=`${timeLeft}s remaining`;if(timeLeft<=5){timerFill.classList.add('urgent');timerText.classList.add('urgent');}else{timerFill.classList.remove('urgent');timerText.classList.remove('urgent');}}
+function selectAnswer(idx){if(answered)return;answered=true;clearInterval(timer);const btns=answersGrid.querySelectorAll('.answer-btn');const correct=questions[current].correct;btns.forEach((btn,i)=>{btn.disabled=true;if(i===correct)btn.classList.add('correct');if(i===idx&&idx!==correct)btn.classList.add('wrong');});if(idx===correct){score++;scoreEl.textContent=score;}setTimeout(()=>{current++;if(current<questions.length){showQuestion();}else{showEnd();}},1500);}
+function showEnd(){quizEl.style.display='none';endScreen.style.display='block';finalScore.textContent=score;let msg="Nice try!";if(score===10)msg="Perfect score! You're a genius!";else if(score>=8)msg="Excellent work!";else if(score>=6)msg="Good job!";else if(score>=4)msg="Not bad, keep practicing!";endMessage.textContent=msg;}
+function restartQuiz(){endScreen.style.display='none';quizEl.style.display='block';init();}
+init();
+  </script>
+</body>
+</html>

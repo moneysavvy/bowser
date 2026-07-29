@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analytics Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg-base: #0a0a0f;
+      --bg-elevated: #12121a;
+      --bg-card: #16161f;
+      --border: rgba(255, 255, 255, 0.06);
+      --accent: #00d4aa;
+      --accent-dim: rgba(0, 212, 170, 0.15);
+      --accent-secondary: #7c3aed;
+      --accent-tertiary: #f59e0b;
+      --text-primary: #f4f4f5;
+      --text-secondary: #a1a1aa;
+      --text-muted: #71717a;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --font-sans: 'Outfit', -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      background: var(--bg-base);
+      color: var(--text-primary);
+      padding: 1.5rem 2rem;
+      background-image: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(0, 212, 170, 0.08), transparent);
+    }
+
+    .dashboard {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .header h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .header p {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      margin-top: 0.25rem;
+    }
+
+    .range-selector {
+      display: flex;
+      gap: 0.5rem;
+      background: var(--bg-card);
+      padding: 0.25rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+    }
+
+    .range-btn {
+      padding: 0.5rem 1rem;
+      background: transparent;
+      border: none;
+      border-radius: 6px;
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .range-btn:hover {
+      color: var(--text-primary);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .range-btn.active {
+      background: var(--accent-dim);
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    .storage-badge {
+      display: inline-block;
+      margin-top: 0.5rem;
+      padding: 0.2rem 0.6rem;
+      background: var(--accent-dim);
+      border: 1px solid rgba(0, 212, 170, 0.3);
+      border-radius: 999px;
+      font-size: 0.7rem;
+      color: var(--accent);
+      font-family: var(--font-mono);
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    @media (max-width: 900px) {
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 500px) {
+      .kpi-grid { grid-template-columns: 1fr; }
+    }
+
+    .kpi-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      transition: border-color 0.2s;
+    }
+
+    .kpi-card:hover {
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .kpi-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+    }
+
+    .kpi-value {
+      font-size: 1.75rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      letter-spacing: -0.02em;
+    }
+
+    .kpi-change {
+      font-size: 0.8rem;
+      margin-top: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .kpi-change.positive { color: var(--success); }
+    .kpi-change.negative { color: var(--danger); }
+    .kpi-change.neutral { color: var(--text-muted); }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    @media (max-width: 1000px) {
+      .charts-grid { grid-template-columns: 1fr; }
+    }
+
+    .chart-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      min-height: 280px;
+    }
+
+    .chart-card h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 1rem;
+    }
+
+    .chart-container {
+      position: relative;
+      height: 220px;
+    }
+
+    .chart-container.donut {
+      max-width: 200px;
+      margin: 0 auto;
+    }
+
+    .activity-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .activity-section h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      padding: 1.25rem 1.25rem 0.5rem;
+    }
+
+    .activity-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .activity-table th,
+    .activity-table td {
+      padding: 0.875rem 1.25rem;
+      text-align: left;
+      border-top: 1px solid var(--border);
+    }
+
+    .activity-table th {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 500;
+    }
+
+    .activity-table td {
+      font-size: 0.9rem;
+    }
+
+    .activity-table tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .status-badge.completed { background: rgba(34, 197, 94, 0.2); color: var(--success); }
+    .status-badge.pending { background: rgba(245, 158, 11, 0.2); color: var(--accent-tertiary); }
+    .status-badge.failed { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
+  </style>
+</head>
+<body>
+  <div class="dashboard">
+    <div class="header">
+      <div>
+        <h1>Analytics Dashboard</h1>
+        <p>Real-time metrics and insights</p>
+        <span class="storage-badge" id="storageBadge">Loading...</span>
+      </div>
+      <div class="range-selector">
+        <button class="range-btn active" data-range="7">7d</button>
+        <button class="range-btn" data-range="30">30d</button>
+        <button class="range-btn" data-range="90">90d</button>
+      </div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Revenue</div>
+        <div class="kpi-value" id="kpiRevenue">—</div>
+        <div class="kpi-change" id="kpiRevenueChange">—</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Users</div>
+        <div class="kpi-value" id="kpiUsers">—</div>
+        <div class="kpi-change" id="kpiUsersChange">—</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Orders</div>
+        <div class="kpi-value" id="kpiOrders">—</div>
+        <div class="kpi-change" id="kpiOrdersChange">—</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Conversion</div>
+        <div class="kpi-value" id="kpiConversion">—</div>
+        <div class="kpi-change" id="kpiConversionChange">—</div>
+      </div>
+    </div>
+
+    <div class="charts-grid">
+      <div class="chart-card">
+        <h3>Revenue Over Time</h3>
+        <div class="chart-container">
+          <canvas id="lineChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <h3>Traffic by Source</h3>
+        <div class="chart-container donut">
+          <canvas id="donutChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-card" style="grid-column: 1 / -1;">
+        <h3>Orders by Day</h3>
+        <div class="chart-container" style="height: 200px;">
+          <canvas id="barChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="activity-section">
+      <h3>Recent Activity</h3>
+      <table class="activity-table">
+        <thead>
+          <tr>
+            <th>Event</th>
+            <th>User</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Time</th>
+          </tr>
+        </thead>
+        <tbody id="activityBody">
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const SUPABASE_URL = 'https://aayokobrxxndsrcsmzcg.supabase.co';
+      const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFheW9rb2JyeHhuZHNyY3NtemNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3NjM0MDksImV4cCI6MjA2MzMzOTQwOX0.mtBmXPjkFgGjvDqp2B-l-deNoNtv75sSZQVq9ELjzL4';
+
+      const CHART_COLORS = {
+        primary: 'rgba(0, 212, 170, 0.9)',
+        primaryDim: 'rgba(0, 212, 170, 0.3)',
+        secondary: 'rgba(124, 58, 237, 0.9)',
+        tertiary: 'rgba(245, 158, 11, 0.9)',
+        grid: 'rgba(255, 255, 255, 0.05)',
+        text: '#a1a1aa'
+      };
+
+      let supabase = null;
+      let useSupabase = false;
+      let lineChart = null;
+      let barChart = null;
+      let donutChart = null;
+      let currentRange = 7;
+
+      function seededRandom(seed) {
+        return function() {
+          seed = (seed * 9301 + 49297) % 233280;
+          return seed / 233280;
+        };
+      }
+
+      function generateDemoData(range) {
+        const days = range;
+        const rng = seededRandom(42 + range);
+        const labels = [];
+        const revenueData = [];
+        const ordersData = [];
+        let baseRevenue = 12000 + rng() * 8000;
+        let baseOrders = 80 + Math.floor(rng() * 40);
+
+        for (let i = days - 1; i >= 0; i--) {
+          const d = new Date();
+          d.setDate(d.getDate() - i);
+          labels.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+          baseRevenue += (rng() - 0.45) * 1500;
+          baseOrders += Math.floor((rng() - 0.5) * 15);
+          revenueData.push(Math.round(Math.max(5000, baseRevenue)));
+          ordersData.push(Math.max(20, baseOrders));
+        }
+
+        const totalRevenue = revenueData.reduce((a, b) => a + b, 0);
+        const totalOrders = ordersData.reduce((a, b) => a + b, 0);
+        const totalUsers = Math.floor(totalOrders * (2.5 + rng() * 1.5));
+        const conversion = (2.8 + rng() * 1.4).toFixed(1);
+
+        const prevRevenue = totalRevenue * (0.85 + rng() * 0.15);
+        const prevUsers = Math.floor(totalUsers * (0.9 + rng() * 0.1));
+        const prevOrders = Math.floor(totalOrders * (0.88 + rng() * 0.12));
+        const prevConversion = (parseFloat(conversion) * (0.92 + rng() * 0.08)).toFixed(1);
+
+        const revenueChange = ((totalRevenue - prevRevenue) / prevRevenue * 100).toFixed(1);
+        const usersChange = ((totalUsers - prevUsers) / prevUsers * 100).toFixed(1);
+        const ordersChange = ((totalOrders - prevOrders) / prevOrders * 100).toFixed(1);
+        const conversionChange = (parseFloat(conversion) - parseFloat(prevConversion)).toFixed(1);
+
+        const sources = ['Direct', 'Organic', 'Paid', 'Referral', 'Social'];
+        const sourceData = sources.map(() => Math.floor(15 + rng() * 25));
+
+        const events = ['Purchase', 'Signup', 'Subscription', 'Refund', 'Upgrade'];
+        const statuses = ['completed', 'pending', 'failed'];
+        const activity = [];
+        for (let i = 0; i < 8; i++) {
+          const ev = events[Math.floor(rng() * events.length)];
+          const st = statuses[Math.floor(rng() * 3)];
+          activity.push({
+            event: ev,
+            user: `user_${Math.floor(1000 + rng() * 9000)}`,
+            amount: ev === 'Refund' ? -((1 + rng() * 4) * 50).toFixed(2) : ((1 + rng() * 9) * 100).toFixed(2),
+            status: st,
+            time: new Date(Date.now() - rng() * 86400000 * 2).toLocaleString()
+          });
+        }
+
+        return {
+          labels,
+          revenueData,
+          ordersData,
+          kpis: {
+            revenue: totalRevenue.toLocaleString(),
+            users: totalUsers.toLocaleString(),
+            orders: totalOrders.toString(),
+            conversion: conversion + '%',
+            changes: {
+              revenue: parseFloat(revenueChange),
+              users: parseFloat(usersChange),
+              orders: parseFloat(ordersChange),
+              conversion: parseFloat(conversionChange)
+            }
+          },
+          sourceLabels: sources,
+          sourceData,
+          activity
+        };
+      }
+
+      async function initSupabase() {
+        try {
+          supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+          const { data, error } = await supabase.from('analytics_kpis').select('*').limit(1);
+          if (error) throw error;
+          useSupabase = true;
+          return true;
+        } catch (e) {
+          useSupabase = false;
+          return false;
+        }
+      }
+
+      async function fetchData(range) {
+        if (useSupabase && supabase) {
+          try {
+            const { data: kpis } = await supabase.from('analytics_kpis').select('*');
+            const { data: chartData } = await supabase.from('analytics_chart').select('*');
+            const { data: activity } = await supabase.from('analytics_activity').select('*').order('created_at', { ascending: false }).limit(8);
+            if (kpis && kpis.length && chartData && chartData.length) {
+              return transformSupabaseData(kpis, chartData, activity, range);
+            }
+          } catch (e) {
+            useSupabase = false;
+          }
+        }
+        return generateDemoData(range);
+      }
+
+      function transformSupabaseData(kpis, chartData, activity, range) {
+        const labels = chartData.slice(-range).map(d => d.label || d.date);
+        const revenueData = chartData.slice(-range).map(d => d.revenue || 0);
+        const ordersData = chartData.slice(-range).map(d => d.orders || 0);
+        const last = kpis[kpis.length - 1] || {};
+        const prev = kpis[kpis.length - 2] || {};
+        return {
+          labels,
+          revenueData,
+          ordersData,
+          kpis: {
+            revenue: (last.revenue || 0).toLocaleString(),
+            users: (last.users || 0).toLocaleString(),
+            orders: (last.orders || 0).toString(),
+            conversion: (last.conversion || 0) + '%',
+            changes: {
+              revenue: last.revenue && prev.revenue ? ((last.revenue - prev.revenue) / prev.revenue * 100) : 0,
+              users: last.users && prev.users ? ((last.users - prev.users) / prev.users * 100) : 0,
+              orders: last.orders && prev.orders ? ((last.orders - prev.orders) / prev.orders * 100) : 0,
+              conversion: (last.conversion || 0) - (prev.conversion || 0)
+            }
+          },
+          sourceLabels: ['Direct', 'Organic', 'Paid', 'Referral', 'Social'],
+          sourceData: [last.direct || 20, last.organic || 25, last.paid || 30, last.referral || 15, last.social || 10],
+          activity: (activity || []).map(a => ({
+            event: a.event || a.type,
+            user: a.user || a.user_id,
+            amount: a.amount,
+            status: a.status || 'completed',
+            time: a.created_at || a.time
+          }))
+        };
+      }
+
+      function updateBadge() {
+        document.getElementById('storageBadge').textContent = useSupabase ? 'Supabase' : 'Demo data';
+      }
+
+      function updateKPIs(data) {
+        const { kpis } = data;
+        document.getElementById('kpiRevenue').textContent = '$' + kpis.revenue;
+        document.getElementById('kpiUsers').textContent = kpis.users;
+        document.getElementById('kpiOrders').textContent = kpis.orders;
+        document.getElementById('kpiConversion').textContent = kpis.conversion;
+
+        const c = kpis.changes;
+        function renderChange(id, v) {
+          const el = document.getElementById(id);
+          const sign = v > 0 ? '+' : '';
+          const suffix = id.includes('Conversion') ? '%' : '%';
+          el.textContent = `${sign}${v.toFixed(1)}${suffix} vs previous`;
+          el.className = 'kpi-change ' + (v > 0 ? 'positive' : v < 0 ? 'negative' : 'neutral');
+        }
+        renderChange('kpiRevenueChange', c.revenue);
+        renderChange('kpiUsersChange', c.users);
+        renderChange('kpiOrdersChange', c.orders);
+        renderChange('kpiConversionChange', c.conversion);
+      }
+
+      function updateCharts(data) {
+        const lineCtx = document.getElementById('lineChart').getContext('2d');
+        const barCtx = document.getElementById('barChart').getContext('2d');
+        const donutCtx = document.getElementById('donutChart').getContext('2d');
+
+        if (lineChart) lineChart.destroy();
+        lineChart = new Chart(lineCtx, {
+          type: 'line',
+          data: {
+            labels: data.labels,
+            datasets: [{
+              label: 'Revenue',
+              data: data.revenueData,
+              borderColor: CHART_COLORS.primary,
+              backgroundColor: CHART_COLORS.primaryDim,
+              fill: true,
+              tension: 0.4
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { grid: { color: CHART_COLORS.grid }, ticks: { color: CHART_COLORS.text, maxTicksLimit: 8 } },
+              y: { grid: { color: CHART_COLORS.grid }, ticks: { color: CHART_COLORS.text } }
+            }
+          }
+        });
+
+        if (barChart) barChart.destroy();
+        barChart = new Chart(barCtx, {
+          type: 'bar',
+          data: {
+            labels: data.labels,
+            datasets: [{
+              label: 'Orders',
+              data: data.ordersData,
+              backgroundColor: CHART_COLORS.primaryDim,
+              borderColor: CHART_COLORS.primary,
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { grid: { display: false }, ticks: { color: CHART_COLORS.text, maxTicksLimit: 10 } },
+              y: { grid: { color: CHART_COLORS.grid }, ticks: { color: CHART_COLORS.text } }
+            }
+          }
+        });
+
+        if (donutChart) donutChart.destroy();
+        donutChart = new Chart(donutCtx, {
+          type: 'doughnut',
+          data: {
+            labels: data.sourceLabels,
+            datasets: [{
+              data: data.sourceData,
+              backgroundColor: [CHART_COLORS.primary, CHART_COLORS.secondary, CHART_COLORS.tertiary, 'rgba(59, 130, 246, 0.9)', 'rgba(236, 72, 153, 0.9)'],
+              borderWidth: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'right', labels: { color: CHART_COLORS.text } } },
+            cutout: '60%'
+          }
+        });
+      }
+
+      function updateActivity(data) {
+        const tbody = document.getElementById('activityBody');
+        tbody.innerHTML = data.activity.map(a => `
+          <tr>
+            <td>${a.event}</td>
+            <td>${a.user}</td>
+            <td>${a.amount < 0 ? '-' : ''}$${Math.abs(parseFloat(a.amount)).toFixed(2)}</td>
+            <td><span class="status-badge ${a.status}">${a.status}</span></td>
+            <td>${typeof a.time === 'string' ? a.time : new Date(a.time).toLocaleString()}</td>
+          </tr>
+        `).join('');
+      }
+
+      function render(data) {
+        updateKPIs(data);
+        updateCharts(data);
+        updateActivity(data);
+      }
+
+      async function loadRange(range) {
+        currentRange = parseInt(range, 10);
+        document.querySelectorAll('.range-btn').forEach(btn => {
+          btn.classList.toggle('active', parseInt(btn.dataset.range, 10) === currentRange);
+        });
+        const data = await fetchData(currentRange);
+        render(data);
+      }
+
+      async function init() {
+        await initSupabase();
+        updateBadge();
+        await loadRange(7);
+
+        document.querySelectorAll('.range-btn').forEach(btn => {
+          btn.addEventListener('click', () => loadRange(btn.dataset.range));
+        });
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>

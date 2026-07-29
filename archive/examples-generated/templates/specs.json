@@ -1,0 +1,34 @@
+{
+  "apps": [
+    {
+      "id": "06-pomodoro-timer",
+      "title": "Pomodoro Timer",
+      "max_width": "480px",
+      "prompt": "Build a Pomodoro timer. 25min work / 5min break / 15min long break. Show circular SVG progress ring (use stroke-dashoffset). Start/pause/reset buttons. Session counter. Audio beep on completion (Web Audio API oscillator). Store session count in localStorage. All colors must use CSS variables from the dark theme (--text-primary, --text-secondary, --card-bg, --card-border, --accent, etc). NO white backgrounds, NO light-mode colors."
+    },
+    {
+      "id": "07-expense-tracker",
+      "title": "Expense Tracker",
+      "max_width": "560px",
+      "prompt": "Build an expense tracker. Add expense: description, amount, category (Food/Transport/Shopping/Bills/Other). Show total balance, income vs expenses in stat-cards. List transactions with delete button and category color dots. Category filter buttons. Store in localStorage. Use color-coded categories. All colors must use CSS variables from the dark theme. NO white backgrounds, NO #fff, NO light-mode colors like #374151."
+    },
+    {
+      "id": "08-markdown-editor",
+      "title": "Markdown Editor",
+      "max_width": "900px",
+      "prompt": "Build a split-pane markdown editor. Left: textarea for markdown. Right: live HTML preview. Support: headings h1-h6, **bold**, *italic*, - lists, ```code blocks```, [links](url), > blockquotes. Toolbar buttons for common formatting (B, I, H1, H2, Link, Code, Quote, List). localStorage auto-save. Export as HTML button (download). All colors must use CSS vars from dark theme (--text-primary, --card-bg, --card-border, --accent). Dark textarea and dark preview pane. NO white backgrounds."
+    },
+    {
+      "id": "09-weather-dashboard",
+      "title": "Weather Dashboard",
+      "max_width": "700px",
+      "prompt": "Build a weather dashboard with mock data (no API). City search box with autocomplete dropdown. Current temp/conditions with large weather emoji icon. 5-day forecast as horizontal card row. Stats: humidity, wind speed, UV index, visibility in stat-card grid. Toggle Celsius/Fahrenheit. Hardcoded data for: NYC (72F sunny), London (58F cloudy), Tokyo (80F humid), Sydney (65F rainy), Paris (63F partly cloudy). All colors must use CSS vars from dark theme. NO white backgrounds."
+    },
+    {
+      "id": "10-quiz-game",
+      "title": "Quiz Game",
+      "max_width": "560px",
+      "prompt": "Build a trivia quiz. 10 multiple-choice questions (science/history/tech mix). Progress bar at top. Question number + question text. 4 answer buttons in 2x2 grid. Correct = green highlight, wrong = red highlight. Score counter. 15s countdown timer per question with visual urgency at 5s. End screen with final score and restart button. ALL UI must use dark theme CSS vars: question card uses var(--card-bg) background, text uses var(--text-primary), answer buttons use rgba(255,255,255,0.06) background with var(--card-border) borders. NO #fff, NO white, NO light-mode colors."
+    }
+  ]
+}

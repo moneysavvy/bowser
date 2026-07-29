@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weather Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-gradient-start: #0f0f23;
+      --bg-gradient-mid: #1a1a3e;
+      --bg-gradient-end: #0d0d1f;
+      --card-bg: rgba(255, 255, 255, 0.03);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --accent: #6366f1;
+      --accent-hover: #818cf8;
+      --accent-glow: rgba(99, 102, 241, 0.4);
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --danger: #ef4444;
+      --danger-hover: #f87171;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-mid) 50%, var(--bg-gradient-end) 100%);
+      color: var(--text-primary);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.15), transparent);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    #app {
+      width: 100%;
+      max-width: 700px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .header { text-align: center; margin-bottom: 2rem; animation: fadeSlideDown 0.6s ease-out; }
+    .header h1 {
+      font-size: 2.5rem; font-weight: 700;
+      background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; letter-spacing: -0.02em;
+    }
+    .header p { color: var(--text-secondary); margin-top: 0.5rem; font-size: 0.95rem; }
+
+    .badge {
+      display: inline-block; margin-top: 0.75rem; padding: 0.25rem 0.75rem;
+      background: rgba(99, 102, 241, 0.2); border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: 999px; font-size: 0.75rem; color: #a5b4fc;
+    }
+
+    .card {
+      background: var(--card-bg); border: 1px solid var(--card-border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+      backdrop-filter: blur(12px); overflow: hidden;
+      animation: fadeSlideUp 0.5s ease-out 0.2s both;
+    }
+
+    .btn {
+      padding: 0.875rem 1.5rem; border: none; border-radius: var(--radius-sm);
+      color: white; font-weight: 600; font-size: 0.95rem; cursor: pointer;
+      transition: var(--transition); white-space: nowrap; font-family: inherit;
+    }
+    .btn-primary { background: linear-gradient(135deg, var(--accent), #4f46e5); }
+    .btn-primary:hover { background: linear-gradient(135deg, var(--accent-hover), #6366f1); transform: translateY(-1px); box-shadow: 0 4px 12px var(--accent-glow); }
+    .btn-ghost { background: rgba(255,255,255,0.06); border: 1px solid var(--card-border); }
+    .btn-ghost:hover { background: rgba(255,255,255,0.1); }
+    .btn-ghost.active { background: var(--accent); border-color: var(--accent); }
+    .btn-danger { background: var(--danger); }
+    .btn-danger:hover { background: var(--danger-hover); }
+    .btn-sm { padding: 0.5rem 1rem; font-size: 0.8rem; }
+
+    .input {
+      flex: 1; padding: 0.875rem 1rem;
+      background: rgba(255, 255, 255, 0.05); border: 1px solid var(--card-border);
+      border-radius: var(--radius-sm); color: var(--text-primary);
+      font-size: 1rem; font-family: inherit; transition: var(--transition);
+    }
+    .input::placeholder { color: var(--text-muted); }
+    .input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+
+    .row { display: flex; gap: 0.75rem; padding: 1.25rem; }
+    .row-border { border-bottom: 1px solid var(--card-border); }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+
+    .stat-card {
+      background: var(--card-bg); border: 1px solid var(--card-border);
+      border-radius: var(--radius); padding: 1.25rem;
+      transition: var(--transition);
+    }
+    .stat-card:hover { border-color: rgba(99, 102, 241, 0.3); transform: translateY(-2px); }
+    .stat-value { font-size: 1.75rem; font-weight: 700; color: var(--accent); }
+    .stat-label { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; }
+
+    .empty { text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.9rem; }
+
+    @keyframes fadeSlideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+    @media (max-width: 640px) {
+      .header h1 { font-size: 1.75rem; }
+      .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+      .row { padding: 1rem; }
+    }
+
+    .weather-emoji { font-size: 4rem; line-height: 1; }
+.current-weather { text-align: center; padding: 2rem 0; }
+.temp-display { font-size: 4rem; font-weight: 700; }
+.condition-text { font-size: 1.25rem; opacity: 0.8; margin-top: 0.5rem; }
+.search-container { position: relative; margin-bottom: 2rem; }
+.autocomplete-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; margin-top: 4px; max-height: 200px; overflow-y: auto; z-index: 100; }
+.autocomplete-item { padding: 12px 16px; cursor: pointer; transition: background 0.15s; }
+.autocomplete-item:hover, .autocomplete-item.active { background: var(--bg-tertiary); }
+.forecast-row { display: flex; gap: 12px; overflow-x: auto; padding: 8px 0; }
+.forecast-card { flex: 0 0 auto; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; padding: 16px; text-align: center; min-width: 100px; }
+.forecast-day { font-weight: 600; margin-bottom: 8px; }
+.forecast-emoji { font-size: 2rem; margin: 8px 0; }
+.forecast-temp { font-weight: 600; }
+.temp-toggle { display: flex; gap: 8px; justify-content: center; margin-bottom: 1rem; }
+.temp-toggle button { padding: 6px 16px; font-size: 0.875rem; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="search-container">
+  <input type="text" class="input" id="citySearch" placeholder="Search city..." autocomplete="off">
+  <div class="autocomplete-dropdown" id="autocomplete"></div>
+</div>
+
+<div class="temp-toggle">
+  <button class="btn btn-sm" id="btnF" style="background: var(--accent); color: var(--bg-primary);">°F</button>
+  <button class="btn btn-sm btn-ghost" id="btnC">°C</button>
+</div>
+
+<div class="current-weather">
+  <div class="weather-emoji" id="weatherEmoji">☀️</div>
+  <div class="temp-display" id="currentTemp">72°F</div>
+  <div class="condition-text" id="conditionText">Sunny</div>
+  <div style="margin-top: 8px; font-size: 1.1rem;" id="cityName">New York</div>
+</div>
+
+<div class="grid-4" style="margin: 2rem 0;">
+  <div class="stat-card">
+    <div class="stat-value" id="humidity">45%</div>
+    <div class="stat-label">Humidity</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value" id="wind">12 mph</div>
+    <div class="stat-label">Wind</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value" id="uv">5</div>
+    <div class="stat-label">UV Index</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value" id="visibility">10 mi</div>
+    <div class="stat-label">Visibility</div>
+  </div>
+</div>
+
+<h3 style="margin: 1.5rem 0 1rem;">5-Day Forecast</h3>
+<div class="forecast-row" id="forecastRow"></div>
+  </div>
+  <script>
+    const cities = {
+  "New York": { temp: 72, condition: "sunny", humidity: "45%", wind: "12 mph", uv: "5", visibility: "10 mi", emoji: "☀️" },
+  "London": { temp: 58, condition: "cloudy", humidity: "72%", wind: "8 mph", uv: "2", visibility: "6 mi", emoji: "☁️" },
+  "Tokyo": { temp: 80, condition: "humid", humidity: "85%", wind: "6 mph", uv: "7", visibility: "8 mi", emoji: "🌫️" },
+  "Sydney": { temp: 65, condition: "rainy", humidity: "78%", wind: "15 mph", uv: "3", visibility: "5 mi", emoji: "🌧️" },
+  "Paris": { temp: 63, condition: "partly cloudy", humidity: "60%", wind: "10 mph", uv: "4", visibility: "9 mi", emoji: "⛅" }
+};
+
+const forecastData = {
+  "New York": ["☀️ 70°F", "⛅ 72°F", "🌧️ 68°F", "☀️ 74°F", "⛅ 71°F"],
+  "London": ["☁️ 56°F", "🌧️ 54°F", "☁️ 58°F", "⛅ 60°F", "☀️ 62°F"],
+  "Tokyo": ["🌫️ 78°F", "☀️ 82°F", "⛅ 80°F", "🌧️ 76°F", "☀️ 81°F"],
+  "Sydney": ["🌧️ 63°F", "⛅ 66°F", "☀️ 68°F", "🌧️ 64°F", "⛅ 67°F"],
+  "Paris": ["⛅ 61°F", "☀️ 64°F", "⛅ 62°F", "🌧️ 59°F", "☀️ 65°F"]
+};
+
+let currentUnit = "F";
+let currentCity = "New York";
+
+function toCelsius(f) { return Math.round((f - 32) * 5 / 9); }
+
+function updateDisplay() {
+  const data = cities[currentCity];
+  const temp = currentUnit === "F" ? data.temp : toCelsius(data.temp);
+  document.getElementById("currentTemp").textContent = temp + "°" + currentUnit;
+  document.getElementById("weatherEmoji").textContent = data.emoji;
+  document.getElementById("conditionText").textContent = data.condition.charAt(0).toUpperCase() + data.condition.slice(1);
+  document.getElementById("cityName").textContent = currentCity;
+  document.getElementById("humidity").textContent = data.humidity;
+  document.getElementById("wind").textContent = data.wind;
+  document.getElementById("uv").textContent = data.uv;
+  document.getElementById("visibility").textContent = data.visibility;
+  
+  const forecast = forecastData[currentCity];
+  const days = ["Tue", "Wed", "Thu", "Fri", "Sat"];
+  document.getElementById("forecastRow").innerHTML = days.map((day, i) => 
+    `<div class="forecast-card"><div class="forecast-day">${day}</div><div class="forecast-emoji">${forecast[i].split(" ")[0]}</div><div class="forecast-temp">${forecast[i].split(" ")[1]}</div></div>`
+  ).join("");
+}
+
+function setUnit(unit) {
+  currentUnit = unit;
+  document.getElementById("btnF").style.background = unit === "F" ? "var(--accent)" : "transparent";
+  document.getElementById("btnF").style.color = unit === "F" ? "var(--bg-primary)" : "";
+  document.getElementById("btnC").style.background = unit === "C" ? "var(--accent)" : "";
+  document.getElementById("btnC").style.color = unit === "C" ? "var(--bg-primary)" : "";
+  updateDisplay();
+}
+
+document.getElementById("btnF").onclick = () => setUnit("F");
+document.getElementById("btnC").onclick = () => setUnit("C");
+
+const searchInput = document.getElementById("citySearch");
+const autocomplete = document.getElementById("autocomplete");
+
+searchInput.oninput = function() {
+  const val = this.value.toLowerCase();
+  if (!val) { autocomplete.innerHTML = ""; return; }
+  const matches = Object.keys(cities).filter(c => c.toLowerCase().startsWith(val));
+  autocomplete.innerHTML = matches.map(c => 
+    `<div class="autocomplete-item" data-city="${c}">${c}</div>`
+  ).join("");
+};
+
+autocomplete.onclick = function(e) {
+  if (e.target.classList.contains("autocomplete-item")) {
+    currentCity = e.target.dataset.city;
+    searchInput.value = "";
+    autocomplete.innerHTML = "";
+    updateDisplay();
+  }
+};
+
+searchInput.onblur = () => setTimeout(() => autocomplete.innerHTML = "", 150);
+updateDisplay();
+  </script>
+</body>
+</html>

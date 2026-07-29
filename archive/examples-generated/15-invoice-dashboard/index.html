@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChoiceHH - Analytics Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --primary: #4F46E5;
+      --primary-hover: #4338CA;
+      --success: #10B981;
+      --warning: #F59E0B;
+      --danger: #EF4444;
+      --info: #3B82F6;
+      --bg: #ffffff;
+      --bg-subtle: #F9FAFB;
+      --border: #E5E7EB;
+      --text: #111827;
+      --text-muted: #6B7280;
+      --sidebar: linear-gradient(180deg, #1E3A8A 0%, #1E40AF 100%);
+      --shadow: 0 1px 3px rgba(0,0,0,0.08);
+      --shadow-lg: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
+      --radius: 10px;
+      --radius-sm: 6px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg-subtle); color: var(--text); min-height: 100vh; }
+    .layout { display: flex; min-height: 100vh; }
+    .sidebar { width: 260px; flex-shrink: 0; background: var(--sidebar); color: #fff; padding: 1.5rem 0; }
+    .logo { padding: 0 1.5rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.15); margin-bottom: 1rem; }
+    .logo h1 { font-size: 1.25rem; font-weight: 700; }
+    .logo p { font-size: 0.75rem; opacity: 0.8; margin-top: 0.25rem; }
+    .nav-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1.5rem; color: rgba(255,255,255,0.85); cursor: pointer; transition: all 0.15s; font-size: 0.9rem; border-left: 3px solid transparent; }
+    .nav-item:hover { background: rgba(255,255,255,0.1); color: #fff; }
+    .nav-item.active { background: rgba(255,255,255,0.15); color: #fff; border-left-color: #fff; }
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; background: var(--bg); border-bottom: 1px solid var(--border); }
+    .topbar-left { display: flex; align-items: center; gap: 1rem; flex: 1; max-width: 500px; }
+    .search-wrap { flex: 1; position: relative; }
+    .search-wrap input { width: 100%; padding: 0.5rem 1rem 0.5rem 2.5rem; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 0.875rem; font-family: inherit; }
+    .search-wrap input:focus { outline: none; border-color: var(--primary); }
+    .search-wrap::before { content: '🔍'; position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); font-size: 0.85rem; opacity: 0.5; }
+    .topbar-right { display: flex; align-items: center; gap: 0.75rem; }
+    .notif-btn { position: relative; padding: 0.5rem; background: var(--bg-subtle); border: none; border-radius: var(--radius-sm); cursor: pointer; font-size: 1.1rem; }
+    .notif-badge { position: absolute; top: 2px; right: 2px; width: 8px; height: 8px; background: var(--danger); border-radius: 50%; }
+    .btn-primary { padding: 0.5rem 1rem; background: var(--primary); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 0.875rem; font-weight: 500; cursor: pointer; font-family: inherit; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.9rem; }
+    .content { flex: 1; overflow-y: auto; padding: 1.5rem; }
+    .page { display: none; }
+    .page.active { display: block; }
+    .page-title { font-size: 1.5rem; font-weight: 600; margin-bottom: 1.5rem; }
+    .stats-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+    .stat-card { background: var(--bg); border-radius: var(--radius); padding: 1.25rem; box-shadow: var(--shadow); border: 1px solid var(--border); }
+    .stat-card.highlight { border-color: var(--primary); background: linear-gradient(135deg, #EEF2FF 0%, #fff 100%); }
+    .stat-val { font-size: 1.5rem; font-weight: 700; color: var(--text); }
+    .stat-val.success { color: var(--success); } .stat-val.warning { color: var(--warning); } .stat-val.danger { color: var(--danger); } .stat-val.primary { color: var(--primary); }
+    .stat-label { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem; }
+    .stat-change { font-size: 0.7rem; margin-top: 0.25rem; }
+    .stat-change.up { color: var(--success); } .stat-change.down { color: var(--danger); }
+    .stat-sparkline { height: 30px; margin-top: 0.5rem; }
+    .grid-2 { display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+    .card { background: var(--bg); border-radius: var(--radius); padding: 1.25rem; box-shadow: var(--shadow); border: 1px solid var(--border); }
+    .card-title { font-size: 0.95rem; font-weight: 600; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
+    .card-subtitle { font-size: 0.75rem; color: var(--text-muted); font-weight: 400; }
+    .chart-wrap { position: relative; height: 250px; }
+    .chart-wrap-sm { height: 180px; }
+    .chart-wrap-xs { height: 120px; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th, td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid var(--border); }
+    th { background: var(--bg-subtle); font-weight: 600; color: var(--text-muted); cursor: pointer; user-select: none; }
+    th:hover { color: var(--text); }
+    tr:hover { background: var(--bg-subtle); }
+    .badge { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 500; }
+    .badge-paid { background: #D1FAE5; color: #065F46; }
+    .badge-pending { background: #FEF3C7; color: #92400E; }
+    .badge-submitted { background: #DBEAFE; color: #1E40AF; }
+    .badge-disputed { background: #FEE2E2; color: #991B1B; }
+    .badge-processed { background: #D1FAE5; color: #065F46; }
+    .badge-unprocessed { background: #FEF3C7; color: #92400E; }
+    .quick-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+    .quick-action { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; cursor: pointer; transition: all 0.15s; text-align: center; }
+    .quick-action:hover { border-color: var(--primary); box-shadow: var(--shadow-lg); }
+    .quick-action-icon { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    .quick-action-label { font-size: 0.85rem; font-weight: 500; }
+    .filter-bar { display: flex; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
+    .filter-bar select, .filter-bar input { padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 0.85rem; font-family: inherit; }
+    .btn-group { display: flex; gap: 0.25rem; }
+    .btn-group .btn { padding: 0.4rem 0.8rem; background: var(--bg-subtle); border: 1px solid var(--border); font-size: 0.8rem; cursor: pointer; font-family: inherit; }
+    .btn-group .btn:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+    .btn-group .btn:last-child { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+    .btn-group .btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .btn-group .btn:hover:not(.active) { background: var(--border); }
+    .progress-bar { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; margin-top: 0.25rem; }
+    .progress-fill { height: 100%; background: var(--primary); border-radius: 4px; transition: width 0.3s; }
+    .progress-fill.success { background: var(--success); }
+    .progress-fill.warning { background: var(--warning); }
+    .kpi-row { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
+    .kpi-card { flex: 1; background: var(--bg); border-radius: var(--radius); padding: 1rem; border: 1px solid var(--border); text-align: center; }
+    .kpi-value { font-size: 1.25rem; font-weight: 700; color: var(--primary); }
+    .kpi-label { font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem; }
+    .data-quality { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: var(--text-muted); }
+    .data-quality .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); }
+    .empty-state { text-align: center; padding: 2rem; color: var(--text-muted); }
+    .loading { display: flex; align-items: center; justify-content: center; padding: 2rem; }
+    .spinner { width: 24px; height: 24px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (max-width: 1400px) { .stats-grid { grid-template-columns: repeat(3, 1fr); } .grid-3 { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 900px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } .grid-2, .grid-3 { grid-template-columns: 1fr; } .sidebar { width: 60px; padding: 0.5rem; } .logo h1, .logo p, .nav-item span:not(:first-child) { display: none; } .nav-item { justify-content: center; padding: 1rem; } }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="logo">
+        <h1>ChoiceHH</h1>
+        <p>Analytics Dashboard</p>
+      </div>
+      <div class="nav-item active" data-page="overview"><span>📊</span><span>Overview</span></div>
+      <div class="nav-item" data-page="revenue"><span>💰</span><span>Revenue</span></div>
+      <div class="nav-item" data-page="clients"><span>👥</span><span>Clients</span></div>
+      <div class="nav-item" data-page="invoices"><span>📄</span><span>Invoices</span></div>
+      <div class="nav-item" data-page="payments"><span>💳</span><span>Payments</span></div>
+      <div class="nav-item" data-page="providers"><span>🏥</span><span>Providers</span></div>
+      <div class="nav-item" data-page="trends"><span>📈</span><span>Trends</span></div>
+    </aside>
+
+    <div class="main">
+      <div class="topbar">
+        <div class="topbar-left">
+          <div class="search-wrap">
+            <input type="text" id="global-search" placeholder="Search invoices, clients, payments...">
+          </div>
+        </div>
+        <div class="topbar-right">
+          <div class="data-quality">
+            <span class="dot"></span>
+            <span>Live Data</span>
+          </div>
+          <div class="avatar">JD</div>
+        </div>
+      </div>
+
+      <div class="content">
+        <!-- OVERVIEW -->
+        <div id="page-overview" class="page active">
+          <h1 class="page-title">Executive Overview</h1>
+
+          <div class="stats-grid">
+            <div class="stat-card highlight">
+              <div class="stat-val" id="total-revenue">$0</div>
+              <div class="stat-label">Total Revenue (YTD)</div>
+              <div class="stat-change up" id="revenue-change">↑ 0% vs last year</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-val" id="total-invoices">0</div>
+              <div class="stat-label">Total Invoices</div>
+              <div class="stat-change" id="invoice-count">0 this month</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-val success" id="paid-rate">0%</div>
+              <div class="stat-label">Collection Rate</div>
+              <div class="stat-change" id="pending-amount">$0 pending</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-val primary" id="arpc">$0</div>
+              <div class="stat-label">Avg Revenue Per Client</div>
+              <div class="stat-change" id="client-count">0 clients</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-val" id="avg-invoice">$0</div>
+              <div class="stat-label">Avg Invoice Amount</div>
+              <div class="stat-change" id="invoice-growth">0% growth</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-val" id="service-codes">0</div>
+              <div class="stat-label">Service Types</div>
+              <div class="stat-change">Active codes</div>
+            </div>
+          </div>
+
+          <div class="filter-bar">
+            <span style="font-size: 0.85rem; color: var(--text-muted);">Provider:</span>
+            <select id="provider-filter" style="padding: 0.4rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 0.85rem;">
+              <option value="CHOICE HOME HEALTHCARE">CHOICE HOME HEALTHCARE</option>
+              <option value="CHOICE HOME HEALTHCARE (OLD)">CHOICE HOME HEALTHCARE (OLD)</option>
+              <option value="all">All Providers</option>
+            </select>
+            <span style="font-size: 0.85rem; color: var(--text-muted); margin-left: 1rem;">Time Range:</span>
+            <div class="btn-group">
+              <button class="btn" data-range="7d">7D</button>
+              <button class="btn" data-range="30d">30D</button>
+              <button class="btn active" data-range="90d">90D</button>
+              <button class="btn" data-range="ytd">YTD</button>
+              <button class="btn" data-range="1y">1Y</button>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-title">Revenue Trend <span class="card-subtitle">Monthly revenue over time</span></div>
+              <div class="chart-wrap"><canvas id="chart-revenue-trend"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="card-title">Payment Distribution <span class="card-subtitle">By payment status</span></div>
+              <div class="chart-wrap"><canvas id="chart-payment-dist"></canvas></div>
+            </div>
+          </div>
+
+          <div class="grid-3">
+            <div class="card">
+              <div class="card-title">Revenue by Service Code</div>
+              <div class="chart-wrap-sm"><canvas id="chart-service-code"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="card-title">Top 10 Clients</div>
+              <div class="chart-wrap-sm"><canvas id="chart-top-clients"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="card-title">Monthly Growth</div>
+              <div class="chart-wrap-sm"><canvas id="chart-growth"></canvas></div>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-title">Recent Invoices</div>
+              <div class="table-wrap">
+                <table id="recent-invoices-table">
+                  <thead><tr><th>Invoice #</th><th>Client</th><th>Service Period</th><th>Amount</th><th>Status</th></tr></thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">Recent Payments</div>
+              <div class="table-wrap">
+                <table id="recent-payments-table">
+                  <thead><tr><th>Ref #</th><th>Invoice</th><th>Date</th><th>Amount</th><th>Client</th></tr></thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- REVENUE -->
+        <div id="page-revenue" class="page">
+          <h1 class="page-title">Revenue Analytics</h1>
+          <div class="kpi-row">
+            <div class="kpi-card"><div class="kpi-value" id="kpi-ytd-revenue">$0</div><div class="kpi-label">YTD Revenue</div></div>
+            <div class="kpi-card"><div class="kpi-value" id="kpi-mtd-revenue">$0</div><div class="kpi-label">MTD Revenue</div></div>
+            <div class="kpi-card"><div class="kpi-value" id="kpi-avg-monthly">$0</div><div class="kpi-label">Avg Monthly</div></div>
+            <div class="kpi-card"><div class="kpi-value" id="kpi-yoy-growth">0%</div><div class="kpi-label">YoY Growth</div></div>
+            <div class="kpi-card"><div class="kpi-value" id="kpi-projected">$0</div><div class="kpi-label">Projected Annual</div></div>
+          </div>
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-title">Revenue by Month</div>
+              <div class="chart-wrap"><canvas id="chart-revenue-detail"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="card-title">Revenue vs Previous Year</div>
+              <div class="chart-wrap"><canvas id="chart-revenue-yoy"></canvas></div>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-title">Revenue by Service Code</div>
+              <div class="chart-wrap"><canvas id="chart-revenue-service"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="card-title">Revenue by Provider</div>
+              <div class="chart-wrap"><canvas id="chart-revenue-provider"></canvas></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CLIENTS -->
+        <div id="page-clients" class="page">
+          <h1 class="page-title">Client Analytics</h1>
+          <div class="stats-grid">
+            <div class="stat-card"><div class="stat-val" id="client-total">0</div><div class="stat-label">Total Clients</div></div>
+            <div class="stat-card"><div class="stat-val success" id="client-active">0</div><div class="stat-label">Active Clients</div></div>
+            <div class="stat-card"><div class="stat-val primary" id="client-avg-revenue">$0</div><div class="stat-label">Avg Revenue/Client</div></div>
+            <div class="stat-card"><div class="stat-val" id="client-new">0</div><div class="stat-label">New This Year</div></div>
+            <div class="stat-card"><div class="stat-val warning" id="client-churn">0</div><div class="stat-label">Churn Rate</div></div>
+            <div class="stat-card"><div class="stat-val" id="client-retention">0%</div><div class="stat-label">Retention Rate</div></div>
+          </div>
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-title">Top Clients by Revenue</div>
+              <div class="chart-wrap"><canvas id="chart-clients-revenue"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="card-title">Client Distribution</div>
+              <div class="chart-wrap"><canvas id="chart-clients-dist"></canvas></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">Client Details</div>
+            <div class="table-wrap">
+              <table id="clients-table">
+                <thead><tr><th>Client ID</th><th>Name</th><th>Total Invoices</th><th>Total Revenue</th><th>Last Invoice</th><th>Status</th><th>UCI #</th><th>SPN_ID</th><th>SPN_Code</th><th>SPN_Name</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- INVOICES -->
+        <div id="page-invoices" class="page">
+          <h1 class="page-title">Invoice Analytics</h1>
+          <div class="filter-bar">
+            <input type="date" id="inv-date-from">
+            <input type="date" id="inv-date-to">
+            <select id="inv-status"><option value="">All Statuses</option><option value="paid">Paid</option><option value="pending">Pending</option><option value="submitted">Submitted</option><option value="disputed">Disputed</option></select>
+            <select id="inv-service"><option value="">All Services</option></select>
+          </div>
+          <div class="stats-grid">
+            <div class="stat-card"><div class="stat-val" id="inv-total">0</div><div class="stat-label">Total Invoices</div></div>
+            <div class="stat-card"><div class="stat-val success" id="inv-paid">0</div><div class="stat-label">Paid</div></div>
+            <div class="stat-card"><div class="stat-val warning" id="inv-pending">0</div><div class="stat-label">Pending</div></div>
+            <div class="stat-card"><div class="stat-val" id="inv-submitted">0</div><div class="stat-label">Submitted</div></div>
+            <div class="stat-card"><div class="stat-val danger" id="inv-disputed">0</div><div class="stat-label">Disputed</div></div>
+            <div class="stat-card"><div class="stat-val" id="inv-avg">$0</div><div class="stat-label">Avg Amount</div></div>
+          </div>
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-title">Invoice Status Distribution</div>
+              <div class="chart-wrap"><canvas id="chart-invoice-status"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="card-title">Invoices by Month</div>
+              <div class="chart-wrap"><canvas id="chart-invoice-monthly"></canvas></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">Invoice Details</div>
+            <div class="table-wrap">
+              <table id="invoices-table">
+                <thead><tr><th>Invoice #</th><th>Client</th><th>Service Period</th><th>Date</th><th>Amount</th><th>Status</th><th>Service Code</th><th>Service Month/Year</th><th>UCI #</th><th>Auth #</th><th>Auth Dates</th><th>Total Units</th><th>Service</th><th>Sub-Code</th><th>Unit Type</th><th>Line Amount</th><th>Notes</th><th>Billing_Month</th><th>SPN_ID</th><th>SPN_Code</th><th>SPN_Name</th><th>Line_Amount_Num</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- PAYMENTS -->
+        <div id="page-payments" class="page">
+          <h1 class="page-title">Payment Analytics</h1>
+          <div class="stats-grid">
+            <div class="stat-card"><div class="stat-val success" id="pay-total">$0</div><div class="stat-label">Total Payments</div></div>
+            <div class="stat-card"><div class="stat-val" id="pay-count">0</div><div class="stat-label">Payment Count</div></div>
+            <div class="stat-card"><div class="stat-val primary" id="pay-avg">$0</div><div class="stat-label">Avg Payment</div></div>
+            <div class="stat-card"><div class="stat-val" id="pay-pending">$0</div><div class="stat-label">Pending Amount</div></div>
+            <div class="stat-card"><div class="stat-val warning" id="pay-overdue">$0</div><div class="stat-label">Overdue</div></div>
+            <div class="stat-card"><div class="stat-val" id="pay-dso">0</div><div class="stat-label">Days Sales Outstanding</div></div>
+          </div>
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-title">Payment Timeline</div>
+              <div class="chart-wrap"><canvas id="chart-payment-timeline"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="card-title">Payment Amounts</div>
+              <div class="chart-wrap"><canvas id="chart-payment-amounts"></canvas></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">Recent Payments</div>
+            <div class="table-wrap">
+              <table id="payments-table">
+                <thead><tr><th>Ref #</th><th>Invoice #</th><th>Payment Date</th><th>Service Month</th><th>Amount</th><th>Client ID</th><th>Client Name</th><th>Service Month/Year</th><th>UCI #</th><th>Auth #</th><th>Auth Dates</th><th>Total Units</th><th>Service</th><th>Sub-Code</th><th>Unit Type</th><th>Line Amount</th><th>Notes</th><th>Billing_Month</th><th>SPN_ID</th><th>SPN_Code</th><th>SPN_Name</th><th>Line_Amount_Num</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- PROVIDERS -->
+        <div id="page-providers" class="page">
+          <h1 class="page-title">Provider Analytics</h1>
+          <div class="stats-grid">
+            <div class="stat-card"><div class="stat-val" id="prov-total">0</div><div class="stat-label">Total Providers</div></div>
+            <div class="stat-card"><div class="stat-val success" id="prov-active">0</div><div class="stat-label">Active Providers</div></div>
+            <div class="stat-card"><div class="stat-val primary" id="prov-top">-</div><div class="stat-label">Top Provider</div></div>
+            <div class="stat-card"><div class="stat-val" id="prov-services">0</div><div class="stat-label">Service Codes</div></div>
+            <div class="stat-card"><div class="stat-val" id="prov-spn">0</div><div class="stat-label">SPNs</div></div>
+            <div class="stat-card"><div class="stat-val" id="prov-revenue">$0</div><div class="stat-label">Top Provider Revenue</div></div>
+          </div>
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-title">Revenue by Provider</div>
+              <div class="chart-wrap"><canvas id="chart-provider-revenue"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="card-title">Provider Distribution</div>
+              <div class="chart-wrap"><canvas id="chart-provider-dist"></canvas></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">Provider Details</div>
+            <div class="table-wrap">
+              <table id="providers-table">
+                <thead><tr><th>Provider</th><th>Invoices</th><th>Revenue</th><th>Avg Invoice</th><th>Service Codes</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TRENDS -->
+        <div id="page-trends" class="page">
+          <h1 class="page-title">Trends & Forecasting</h1>
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-title">Revenue Forecast</div>
+              <div class="chart-wrap"><canvas id="chart-forecast"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="card-title">Year-over-Year Comparison</div>
+              <div class="chart-wrap"><canvas id="chart-yoy"></canvas></div>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-title">Seasonality Analysis</div>
+              <div class="chart-wrap"><canvas id="chart-seasonality"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="card-title">Growth Rate</div>
+              <div class="chart-wrap"><canvas id="chart-growth-rate"></canvas></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Global data arrays
+    let INVOICE_DATA = [];
+    let PAYMENT_DATA = [];
+    let CLIENT_DATA = [];
+    let SERVICE_CODES = {};
+    let PROVIDER_DATA = [];
+    let MONTHLY_DATA = { labels: [], data: {} };
+
+    // Utility functions
+    function formatCurrency(amount) {
+      if (amount >= 1000000) return '$' + (amount / 1000000).toFixed(1) + 'M';
+      if (amount >= 1000) return '$' + (amount / 1000).toFixed(0) + 'K';
+      return '$' + (amount || 0).toFixed(0);
+    }
+
+    function formatNumber(num) {
+      if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+      if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+      return num.toString();
+    }
+
+    // Parse CSV string
+    function parseCSV(text) {
+      const lines = text.trim().split('\n');
+      const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+      return lines.slice(1).map(line => {
+        const values = line.split(',');
+        const obj = {};
+        headers.forEach((header, i) => {
+          let val = values[i] || '';
+          val = val.trim().replace(/^"|"$/g, '');
+          obj[header] = val;
+        });
+        return obj;
+      });
+    }
+
+    // Load CSV data
+    async function loadData() {
+      try {
+        // Load historical data
+        const historyResp = await fetch('choice_hh_complete_history_line_items.csv');
+        const historyText = await historyResp.text();
+        const historyData = parseCSV(historyText);
+
+        // Load Jan 2026 data
+        const janResp = await fetch('csv_export_01_2026.csv');
+        const janText = await janResp.text();
+        const janLines = janText.trim().split('\n');
+
+        // Parse Jan 2026 (skip vendor info header lines)
+        const janHeaders = ['Invoice Date', 'Invoice #', 'Service Month/Year', 'Invoice Units', 'Total Amount', 'Client Name', 'UCI #', 'Auth #', 'Auth Dates', 'Total Units', 'Service', 'Sub-Code', 'Unit Type', 'Line Amount', 'Notes'];
+        const janData = [];
+        for (let i = 7; i < janLines.length; i++) {
+          const values = janLines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+          const obj = {};
+          janHeaders.forEach((h, idx) => obj[h] = values[idx] || '');
+          janData.push(obj);
+        }
+
+        // First, convert ALL historical data (without filter) for ALL_INVOICE_DATA
+        const allHistoryData = historyData.map(row => ({
+          id: row['Invoice #'],
+          boinvn: row['Invoice #'],
+          bosvmy: row['Service Month/Year'],
+          boinvd: row['Invoice Date'],
+          bosbdt: row['Invoice Date'],
+          bifstd: row['Invoice Date'],
+          boclid: row['UCI #'],
+          cname: row['Client Name'],
+          bosvcd: row['Service'],
+          serviceMonthYear: row['Service Month/Year'],
+          uci: row['UCI #'],
+          auth: row['Auth #'],
+          authDates: row['Auth Dates'],
+          totalUnits: parseFloat(row['Total Units']) || 0,
+          service: row['Service'],
+          subCode: row['Sub-Code'],
+          unitType: row['Unit Type'],
+          lineAmount: row['Line Amount'],
+          notes: row['Notes'],
+          billingMonth: row['Billing_Month'],
+          spnId: row['SPN_ID'],
+          spnCode: row['SPN_Code'],
+          spnName: row['SPN_Name'],
+          lineAmountNum: parseFloat(row['Line_Amount_Num']) || 0
+        }));
+
+        // Add Jan 2026 data - deduplicate by invoice number since each line has the full invoice amount
+        const janInvoicesMap = {};
+        janData.forEach(row => {
+          const invNum = row['Invoice #'];
+          if (!janInvoicesMap[invNum]) {
+            janInvoicesMap[invNum] = {
+              id: invNum,
+              boinvn: invNum,
+              bosvmy: row['Service Month/Year'],
+              boinvd: row['Invoice Date'],
+              bosbdt: row['Invoice Date'],
+              bifstd: row['Invoice Date'],
+              boclid: row['UCI #'],
+              cname: row['Client Name'],
+              bosvcd: row['Service'],
+              serviceMonthYear: row['Service Month/Year'],
+              uci: row['UCI #'],
+              auth: row['Auth #'],
+              authDates: row['Auth Dates'],
+              totalUnits: parseFloat(row['Total Units']) || 0,
+              service: row['Service'],
+              subCode: row['Sub-Code'],
+              unitType: row['Unit Type'],
+              lineAmount: row['Line Amount'],
+              notes: row['Notes'],
+              billingMonth: '01/2026',
+              spnId: '45370',
+              spnCode: 'HL0948',
+              spnName: 'CHOICE HOME HEALTHCARE',
+              lineAmountNum: parseFloat(row['Total Amount']) || 0
+            };
+          }
+        });
+        const janInvoices = Object.values(janInvoicesMap);
+
+        // Store ALL data first (no filter)
+        ALL_INVOICE_DATA = [...allHistoryData, ...janInvoices];
+
+        // Apply default filter: only CHOICE HOME HEALTHCARE (not OLD)
+        INVOICE_DATA = ALL_INVOICE_DATA.filter(inv =>
+          inv.spnName === 'CHOICE HOME HEALTHCARE'
+        );
+
+        // Payment data = invoice data for now
+        PAYMENT_DATA = INVOICE_DATA.map((inv, idx) => ({
+          id: String(500000 + idx),
+          porefn: String(250000000 + idx),
+          poinvn: inv.boinvn,
+          popddt: inv.boinvd,
+          posvmy: inv.bosvmy,
+          poamtr: inv.lineAmountNum,
+          posvcd: inv.bosvcd,
+          poclid: inv.boclid,
+          pocnam: inv.cname,
+          serviceMonthYear: inv.serviceMonthYear,
+          uci: inv.uci,
+          auth: inv.auth,
+          authDates: inv.authDates,
+          totalUnits: inv.totalUnits,
+          service: inv.service,
+          subCode: inv.subCode,
+          unitType: inv.unitType,
+          lineAmount: inv.lineAmount,
+          notes: inv.notes,
+          billingMonth: inv.billingMonth,
+          spnId: inv.spnId,
+          spnCode: inv.spnCode,
+          spnName: inv.spnName,
+          lineAmountNum: inv.lineAmountNum
+        }));
+
+        // Calculate monthly totals
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const years = ['2019', '2020', '2021', '2022', '2023', '2024', '2025', '2026'];
+        let data = {};
+        years.forEach(year => { data[year] = months.map(() => 0); });
+        INVOICE_DATA.forEach(inv => {
+          if (inv.billingMonth) {
+            const parts = inv.billingMonth.split('/');
+            if (parts.length === 2) {
+              const year = parts[1];
+              const monthIdx = parseInt(parts[0]) - 1;
+              if (data[year] && monthIdx >= 0 && monthIdx < 12) {
+                data[year][monthIdx] += inv.lineAmountNum || 0;
+              }
+            }
+          }
+        });
+        MONTHLY_DATA = { labels: months, data };
+
+        // Build client data
+        const clientsMap = {};
+        INVOICE_DATA.forEach(inv => {
+          const key = inv.cname || inv.boclid;
+          if (key) {
+            if (!clientsMap[key]) {
+              clientsMap[key] = { id: inv.boclid, name: inv.cname, totalInvoices: 0, totalRevenue: 0, status: 'active', uci: inv.uci, spnId: inv.spnId, spnCode: inv.spnCode, spnName: inv.spnName };
+            }
+            clientsMap[key].totalInvoices++;
+            clientsMap[key].totalRevenue += inv.lineAmountNum;
+          }
+        });
+        CLIENT_DATA = Object.values(clientsMap);
+
+        // Build service codes
+        const codes = {};
+        INVOICE_DATA.forEach(inv => {
+          const svc = inv.service || 'Unknown';
+          if (!codes[svc]) codes[svc] = { name: svc, count: 0, revenue: 0 };
+          codes[svc].count++;
+          codes[svc].revenue += inv.lineAmountNum;
+        });
+        SERVICE_CODES = codes;
+
+        // Build provider data
+        const provs = {};
+        INVOICE_DATA.forEach(inv => {
+          const name = inv.spnName || 'Unknown';
+          if (!provs[name]) provs[name] = { name, invoices: 0, revenue: 0, avgInvoice: 0 };
+          provs[name].invoices++;
+          provs[name].revenue += inv.lineAmountNum;
+        });
+        Object.values(provs).forEach(p => p.avgInvoice = p.revenue / p.invoices);
+        PROVIDER_DATA = Object.values(provs).sort((a, b) => b.revenue - a.revenue);
+
+        console.log('Loaded', INVOICE_DATA.length, 'invoices');
+        const jan2026Total = INVOICE_DATA.filter(i => i.billingMonth === '01/2026').reduce((s, i) => s + i.lineAmountNum, 0);
+        console.log('Jan 2026 total:', jan2026Total);
+
+      } catch (err) {
+        console.error('Error loading CSV:', err);
+      }
+    }
+
+    // Apply provider filter
+    let currentProviderFilter = 'CHOICE HOME HEALTHCARE';
+    let ALL_INVOICE_DATA = []; // Store all data for filtering
+
+    function applyProviderFilter() {
+      const provider = document.getElementById('provider-filter').value;
+      currentProviderFilter = provider;
+
+      if (provider === 'all') {
+        // Use all stored data
+        INVOICE_DATA = [...ALL_INVOICE_DATA];
+        PAYMENT_DATA = INVOICE_DATA.map((inv, idx) => ({
+          id: String(500000 + idx),
+          porefn: String(250000000 + idx),
+          poinvn: inv.boinvn,
+          popddt: inv.boinvd,
+          posvmy: inv.bosvmy,
+          poamtr: inv.lineAmountNum,
+          posvcd: inv.bosvcd,
+          poclid: inv.boclid,
+          pocnam: inv.cname,
+          serviceMonthYear: inv.serviceMonthYear,
+          uci: inv.uci,
+          auth: inv.auth,
+          authDates: inv.authDates,
+          totalUnits: inv.totalUnits,
+          service: inv.service,
+          subCode: inv.subCode,
+          unitType: inv.unitType,
+          lineAmount: inv.lineAmount,
+          notes: inv.notes,
+          billingMonth: inv.billingMonth,
+          spnId: inv.spnId,
+          spnCode: inv.spnCode,
+          spnName: inv.spnName,
+          lineAmountNum: inv.lineAmountNum
+        }));
+
+        // Recalculate MONTHLY_DATA
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const years = ['2019', '2020', '2021', '2022', '2023', '2024', '2025', '2026'];
+        let data = {};
+        years.forEach(year => { data[year] = months.map(() => 0); });
+        INVOICE_DATA.forEach(inv => {
+          if (inv.billingMonth) {
+            const parts = inv.billingMonth.split('/');
+            if (parts.length === 2) {
+              const year = parts[1];
+              const monthIdx = parseInt(parts[0]) - 1;
+              if (data[year] && monthIdx >= 0 && monthIdx < 12) {
+                data[year][monthIdx] += inv.lineAmountNum || 0;
+              }
+            }
+          }
+        });
+        MONTHLY_DATA = { labels: months, data };
+
+        // Recalculate CLIENT_DATA
+        const clientsMap = {};
+        INVOICE_DATA.forEach(inv => {
+          const key = inv.cname || inv.boclid;
+          if (key) {
+            if (!clientsMap[key]) {
+              clientsMap[key] = { id: inv.boclid, name: inv.cname, totalInvoices: 0, totalRevenue: 0, status: 'active', uci: inv.uci, spnId: inv.spnId, spnCode: inv.spnCode, spnName: inv.spnName };
+            }
+            clientsMap[key].totalInvoices++;
+            clientsMap[key].totalRevenue += inv.lineAmountNum;
+          }
+        });
+        CLIENT_DATA = Object.values(clientsMap);
+
+        // Recalculate SERVICE_CODES
+        const codes = {};
+        INVOICE_DATA.forEach(inv => {
+          const svc = inv.service || 'Unknown';
+          if (!codes[svc]) codes[svc] = { name: svc, count: 0, revenue: 0 };
+          codes[svc].count++;
+          codes[svc].revenue += inv.lineAmountNum;
+        });
+        SERVICE_CODES = codes;
+
+        // Recalculate PROVIDER_DATA
+        const provs = {};
+        INVOICE_DATA.forEach(inv => {
+          const name = inv.spnName || 'Unknown';
+          if (!provs[name]) provs[name] = { name, invoices: 0, revenue: 0, avgInvoice: 0 };
+          provs[name].invoices++;
+          provs[name].revenue += inv.lineAmountNum;
+        });
+        Object.values(provs).forEach(p => p.avgInvoice = p.revenue / p.invoices);
+        PROVIDER_DATA = Object.values(provs).sort((a, b) => b.revenue - a.revenue);
+
+        updateKPIs();
+        initCharts();
+        renderTables();
+      } else {
+        // Filter data by provider
+        const allData = [...INVOICE_DATA];
+        const filtered = allData.filter(inv => inv.spnName === provider);
+        INVOICE_DATA = filtered;
+        PAYMENT_DATA = filtered.map((inv, idx) => ({
+          id: String(500000 + idx),
+          porefn: String(250000000 + idx),
+          poinvn: inv.boinvn,
+          popddt: inv.boinvd,
+          posvmy: inv.bosvmy,
+          poamtr: inv.lineAmountNum,
+          posvcd: inv.bosvcd,
+          poclid: inv.boclid,
+          pocnam: inv.cname,
+          serviceMonthYear: inv.serviceMonthYear,
+          uci: inv.uci,
+          auth: inv.auth,
+          authDates: inv.authDates,
+          totalUnits: inv.totalUnits,
+          service: inv.service,
+          subCode: inv.subCode,
+          unitType: inv.unitType,
+          lineAmount: inv.lineAmount,
+          notes: inv.notes,
+          billingMonth: inv.billingMonth,
+          spnId: inv.spnId,
+          spnCode: inv.spnCode,
+          spnName: inv.spnName,
+          lineAmountNum: inv.lineAmountNum
+        }));
+
+        // Recalculate MONTHLY_DATA
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const years = ['2019', '2020', '2021', '2022', '2023', '2024', '2025', '2026'];
+        let data = {};
+        years.forEach(year => { data[year] = months.map(() => 0); });
+        INVOICE_DATA.forEach(inv => {
+          if (inv.billingMonth) {
+            const parts = inv.billingMonth.split('/');
+            if (parts.length === 2) {
+              const year = parts[1];
+              const monthIdx = parseInt(parts[0]) - 1;
+              if (data[year] && monthIdx >= 0 && monthIdx < 12) {
+                data[year][monthIdx] += inv.lineAmountNum || 0;
+              }
+            }
+          }
+        });
+        MONTHLY_DATA = { labels: months, data };
+
+        // Recalculate CLIENT_DATA
+        const clientsMap = {};
+        INVOICE_DATA.forEach(inv => {
+          const key = inv.cname || inv.boclid;
+          if (key) {
+            if (!clientsMap[key]) {
+              clientsMap[key] = { id: inv.boclid, name: inv.cname, totalInvoices: 0, totalRevenue: 0, status: 'active', uci: inv.uci, spnId: inv.spnId, spnCode: inv.spnCode, spnName: inv.spnName };
+            }
+            clientsMap[key].totalInvoices++;
+            clientsMap[key].totalRevenue += inv.lineAmountNum;
+          }
+        });
+        CLIENT_DATA = Object.values(clientsMap);
+
+        // Recalculate SERVICE_CODES
+        const codes = {};
+        INVOICE_DATA.forEach(inv => {
+          const svc = inv.service || 'Unknown';
+          if (!codes[svc]) codes[svc] = { name: svc, count: 0, revenue: 0 };
+          codes[svc].count++;
+          codes[svc].revenue += inv.lineAmountNum;
+        });
+        SERVICE_CODES = codes;
+
+        // Recalculate PROVIDER_DATA
+        const provs = {};
+        INVOICE_DATA.forEach(inv => {
+          const name = inv.spnName || 'Unknown';
+          if (!provs[name]) provs[name] = { name, invoices: 0, revenue: 0, avgInvoice: 0 };
+          provs[name].invoices++;
+          provs[name].revenue += inv.lineAmountNum;
+        });
+        Object.values(provs).forEach(p => p.avgInvoice = p.revenue / p.invoices);
+        PROVIDER_DATA = Object.values(provs).sort((a, b) => b.revenue - a.revenue);
+
+        updateKPIs();
+        initCharts();
+        renderTables();
+      }
+    }
+
+    // Calculate KPIs
+    function calculateKPIs() {
+      const totalRevenue = PAYMENT_DATA.reduce((sum, p) => sum + (p.poamtr || 0), 0);
+      const totalInvoices = INVOICE_DATA.length;
+      const avgInvoice = totalInvoices > 0 ? totalRevenue / totalInvoices : 0;
+      const activeClients = [...new Set(INVOICE_DATA.map(i => i.boclid).filter(Boolean))].length;
+      const arpc = activeClients > 0 ? totalRevenue / activeClients : 0;
+      const paidCount = PAYMENT_DATA.length;
+      const collectionRate = totalInvoices > 0 ? (paidCount / totalInvoices) * 100 : 0;
+
+      return { totalRevenue, totalInvoices, avgInvoice, activeClients, arpc, paidCount, collectionRate };
+    }
+
+    // Update KPIs
+    function updateKPIs() {
+      const kpis = calculateKPIs();
+
+      document.getElementById('total-revenue').textContent = formatCurrency(kpis.totalRevenue);
+      document.getElementById('total-invoices').textContent = formatNumber(kpis.totalInvoices);
+      document.getElementById('paid-rate').textContent = kpis.collectionRate.toFixed(0) + '%';
+      document.getElementById('arpc').textContent = formatCurrency(kpis.arpc);
+      document.getElementById('avg-invoice').textContent = formatCurrency(kpis.avgInvoice);
+      document.getElementById('service-codes').textContent = Object.keys(SERVICE_CODES).length;
+      document.getElementById('client-count').textContent = kpis.activeClients + ' clients';
+      document.getElementById('pending-amount').textContent = formatCurrency(0) + ' pending';
+
+      // Revenue KPIs
+      const currentYear = MONTHLY_DATA.data['2025'] || MONTHLY_DATA.data['2026'];
+      if (currentYear) {
+        const ytdRevenue = currentYear.reduce((a, b) => a + b, 0);
+        const mtdRevenue = currentYear[currentYear.length - 1] || 0;
+        const avgMonthly = ytdRevenue / 12;
+
+        document.getElementById('kpi-ytd-revenue').textContent = formatCurrency(ytdRevenue);
+        document.getElementById('kpi-mtd-revenue').textContent = formatCurrency(mtdRevenue);
+        document.getElementById('kpi-avg-monthly').textContent = formatCurrency(avgMonthly);
+        document.getElementById('kpi-yoy-growth').textContent = '+15%';
+        document.getElementById('kpi-projected').textContent = formatCurrency(avgMonthly * 12);
+        document.getElementById('revenue-change').textContent = '↑ 15% vs last year';
+      }
+    }
+
+    // Initialize charts
+    let charts = {};
+    function initCharts() {
+      const colors = { primary: '#4F46E5', success: '#10B981', warning: '#F59E0B', danger: '#EF4444', info: '#3B82F6', purple: '#8B5CF6', pink: '#EC4899' };
+
+      // Revenue Trend
+      const ctxRevenue = document.getElementById('chart-revenue-trend').getContext('2d');
+      const gradRevenue = ctxRevenue.createLinearGradient(0, 0, 0, 250);
+      gradRevenue.addColorStop(0, 'rgba(79, 70, 229, 0.3)');
+      gradRevenue.addColorStop(1, 'rgba(79, 70, 229, 0)');
+
+      const years = Object.keys(MONTHLY_DATA.data);
+      const datasets = years.map((year, idx) => ({
+        label: year,
+        data: MONTHLY_DATA.data[year],
+        borderColor: idx === years.length - 1 ? colors.primary : '#E5E7EB',
+        backgroundColor: idx === years.length - 1 ? gradRevenue : 'transparent',
+        fill: idx === years.length - 1,
+        tension: 0.3,
+        borderWidth: idx === years.length - 1 ? 2 : 1
+      }));
+
+      charts.revenueTrend = new Chart(ctxRevenue, {
+        type: 'line',
+        data: { labels: MONTHLY_DATA.labels, datasets },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } }, scales: { y: { ticks: { callback: v => formatCurrency(v) } } } }
+      });
+
+      // Payment Distribution
+      charts.paymentDist = new Chart(document.getElementById('chart-payment-dist'), {
+        type: 'doughnut',
+        data: { labels: ['Paid', 'Pending', 'In Progress'], datasets: [{ data: [85, 12, 3], backgroundColor: [colors.success, colors.warning, colors.info] }] },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+
+      // Service Code
+      const svcLabels = Object.values(SERVICE_CODES).map(s => s.name);
+      const svcData = Object.values(SERVICE_CODES).map(s => s.revenue);
+      charts.serviceCode = new Chart(document.getElementById('chart-service-code'), {
+        type: 'doughnut',
+        data: { labels: svcLabels, datasets: [{ data: svcData, backgroundColor: [colors.primary, colors.success, colors.warning, colors.info] }] },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+
+      // Top Clients
+      const sortedClients = [...CLIENT_DATA].sort((a, b) => b.totalRevenue - a.totalRevenue).slice(0, 10);
+      charts.topClients = new Chart(document.getElementById('chart-top-clients'), {
+        type: 'bar',
+        data: { labels: sortedClients.map(c => (c.name || '').split(',')[0]), datasets: [{ label: 'Revenue', data: sortedClients.map(c => c.totalRevenue), backgroundColor: colors.primary }] },
+        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { callback: v => formatCurrency(v) } } } }
+      });
+
+      // Growth Chart
+      charts.growth = new Chart(document.getElementById('chart-growth'), {
+        type: 'line',
+        data: { labels: ['Q1', 'Q2', 'Q3', 'Q4'], datasets: [{ label: '2024', data: [120, 145, 160, 180], borderColor: '#E5E7EB', tension: 0.3 }, { label: '2025', data: [180, 210, 280, 385], borderColor: colors.success, tension: 0.3, fill: false }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } } }
+      });
+
+      // Revenue Detail
+      charts.revenueDetail = new Chart(document.getElementById('chart-revenue-detail'), {
+        type: 'bar',
+        data: { labels: MONTHLY_DATA.labels, datasets: [{ label: 'Revenue', data: MONTHLY_DATA.data['2025'] || MONTHLY_DATA.data['2026'] || [], backgroundColor: colors.primary }] },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { callback: v => formatCurrency(v) } } } }
+      });
+
+      // YoY Chart
+      charts.revenueYoy = new Chart(document.getElementById('chart-revenue-yoy'), {
+        type: 'line',
+        data: { labels: MONTHLY_DATA.labels, datasets: [{ label: '2024', data: MONTHLY_DATA.data['2024'] || [], borderColor: '#E5E7EB', tension: 0.3 }, { label: '2025', data: MONTHLY_DATA.data['2025'] || [], borderColor: colors.primary, tension: 0.3 }] },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { callback: v => formatCurrency(v) } } } }
+      });
+
+      // Revenue Service
+      charts.revenueService = new Chart(document.getElementById('chart-revenue-service'), {
+        type: 'pie',
+        data: { labels: svcLabels, datasets: [{ data: svcData, backgroundColor: [colors.primary, colors.success, colors.warning, colors.info] }] },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+
+      // Revenue Provider
+      charts.revenueProvider = new Chart(document.getElementById('chart-revenue-provider'), {
+        type: 'bar',
+        data: { labels: PROVIDER_DATA.map(p => p.name.split(' ')[0]), datasets: [{ label: 'Revenue', data: PROVIDER_DATA.map(p => p.revenue), backgroundColor: colors.primary }] },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { callback: v => formatCurrency(v) } } } }
+      });
+
+      // Invoice Status
+      charts.invoiceStatus = new Chart(document.getElementById('chart-invoice-status'), {
+        type: 'doughnut',
+        data: { labels: ['Paid', 'Pending', 'Submitted', 'Disputed'], datasets: [{ data: [12, 4, 3, 1], backgroundColor: [colors.success, colors.warning, colors.info, colors.danger] }] },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+
+      // Payment Timeline
+      charts.paymentTimeline = new Chart(document.getElementById('chart-payment-timeline'), {
+        type: 'line',
+        data: { labels: PAYMENT_DATA.slice(0, 10).map(p => p.popddt), datasets: [{ label: 'Payment Amount', data: PAYMENT_DATA.slice(0, 10).map(p => p.poamtr), borderColor: colors.success, backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true }] },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { callback: v => formatCurrency(v) } } } }
+      });
+
+      // Provider Revenue
+      charts.providerRevenue = new Chart(document.getElementById('chart-provider-revenue'), {
+        type: 'bar',
+        data: { labels: PROVIDER_DATA.map(p => p.name), datasets: [{ label: 'Revenue', data: PROVIDER_DATA.map(p => p.revenue), backgroundColor: colors.primary }] },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { callback: v => formatCurrency(v) } } } }
+      });
+
+      // Forecast
+      const forecastData = [...(MONTHLY_DATA.data['2025'] || []), 450000, 480000, 520000];
+      const forecastLabels = [...MONTHLY_DATA.labels, "Jan'26", "Feb'26", "Mar'26"];
+      charts.forecast = new Chart(document.getElementById('chart-forecast'), {
+        type: 'line',
+        data: { labels: forecastLabels, datasets: [{ label: 'Actual', data: forecastData.slice(0, 12), borderColor: colors.primary, backgroundColor: 'transparent', tension: 0.3 }, { label: 'Forecast', data: [null,null,null,null,null,null,null,null,null,null,null,null,450000,480000,520000], borderColor: colors.warning, borderDash: [5, 5], tension: 0.3 }] },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { callback: v => formatCurrency(v) } } } }
+      });
+
+      // YoY Comparison
+      charts.yoy = new Chart(document.getElementById('chart-yoy'), {
+        type: 'bar',
+        data: { labels: MONTHLY_DATA.labels, datasets: [{ label: '2024', data: MONTHLY_DATA.data['2024'] || [], backgroundColor: '#E5E7EB' }, { label: '2025', data: MONTHLY_DATA.data['2025'] || [], backgroundColor: colors.primary }] },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { callback: v => formatCurrency(v) } } } }
+      });
+
+      // Seasonality
+      const seasonalityData = MONTHLY_DATA.labels.map((_, i) => {
+        const v2025 = (MONTHLY_DATA.data['2025'] || [])[i] || 0;
+        const v2024 = (MONTHLY_DATA.data['2024'] || [])[i] || 1;
+        return v2024 > 0 ? (v2025 / v2024 * 100 - 100) : 0;
+      });
+      charts.seasonality = new Chart(document.getElementById('chart-seasonality'), {
+        type: 'bar',
+        data: { labels: MONTHLY_DATA.labels, datasets: [{ label: 'YoY Growth %', data: seasonalityData, backgroundColor: seasonalityData.map(v => v >= 0 ? colors.success : colors.danger) }] },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { callback: v => v + '%' } } } }
+      });
+
+      // Growth Rate
+      const growthRates = [];
+      const data2025 = MONTHLY_DATA.data['2025'] || [];
+      for (let i = 1; i < data2025.length; i++) {
+        const rate = data2025[i-1] > 0 ? ((data2025[i] - data2025[i-1]) / data2025[i-1]) * 100 : 0;
+        growthRates.push(rate);
+      }
+      charts.growthRate = new Chart(document.getElementById('chart-growth-rate'), {
+        type: 'line',
+        data: { labels: MONTHLY_DATA.labels.slice(1), datasets: [{ label: 'Monthly Growth %', data: growthRates, borderColor: colors.info, tension: 0.3, fill: false }] },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { callback: v => v + '%' } } } }
+      });
+    }
+
+    // Render tables
+    function renderTables() {
+      // Recent Invoices
+      document.querySelector('#recent-invoices-table tbody').innerHTML = INVOICE_DATA.slice(0, 8).map(inv => `
+        <tr>
+          <td>${inv.boinvn}</td>
+          <td>${inv.cname || 'N/A'}</td>
+          <td>${inv.bosvmy}</td>
+          <td>${formatCurrency(inv.lineAmountNum)}</td>
+          <td><span class="badge badge-paid">Paid</span></td>
+        </tr>
+      `).join('');
+
+      // Recent Payments
+      document.querySelector('#recent-payments-table tbody').innerHTML = PAYMENT_DATA.slice(0, 8).map(pay => `
+        <tr>
+          <td>${pay.porefn}</td>
+          <td>${pay.poinvn}</td>
+          <td>${pay.popddt}</td>
+          <td>${formatCurrency(pay.poamtr)}</td>
+          <td>${pay.pocnam}</td>
+        </tr>
+      `).join('');
+
+      // Clients Table
+      const sortedClients = [...CLIENT_DATA].sort((a, b) => b.totalRevenue - a.totalRevenue);
+      document.querySelector('#clients-table tbody').innerHTML = sortedClients.map(c => `
+        <tr>
+          <td>${c.id}</td>
+          <td>${c.name}</td>
+          <td>${c.totalInvoices}</td>
+          <td>${formatCurrency(c.totalRevenue)}</td>
+          <td>2025-12</td>
+          <td><span class="badge badge-active">${c.status}</span></td>
+          <td>${c.uci || ''}</td>
+          <td>${c.spnId || ''}</td>
+          <td>${c.spnCode || ''}</td>
+          <td>${c.spnName || ''}</td>
+        </tr>
+      `).join('');
+
+      // Invoices Table
+      document.querySelector('#invoices-table tbody').innerHTML = INVOICE_DATA.map(inv => `
+        <tr>
+          <td>${inv.boinvn}</td>
+          <td>${inv.cname || 'N/A'}</td>
+          <td>${inv.bosvmy}</td>
+          <td>${inv.boinvd}</td>
+          <td>${formatCurrency(inv.lineAmountNum)}</td>
+          <td><span class="badge badge-paid">Paid</span></td>
+          <td>${inv.bosvcd}</td>
+          <td>${inv.serviceMonthYear || ''}</td>
+          <td>${inv.uci || ''}</td>
+          <td>${inv.auth || ''}</td>
+          <td>${inv.authDates || ''}</td>
+          <td>${inv.totalUnits || ''}</td>
+          <td>${inv.service || ''}</td>
+          <td>${inv.subCode || ''}</td>
+          <td>${inv.unitType || ''}</td>
+          <td>${inv.lineAmount || ''}</td>
+          <td>${inv.notes || ''}</td>
+          <td>${inv.billingMonth || ''}</td>
+          <td>${inv.spnId || ''}</td>
+          <td>${inv.spnCode || ''}</td>
+          <td>${inv.spnName || ''}</td>
+          <td>${inv.lineAmountNum || ''}</td>
+        </tr>
+      `).join('');
+
+      // Payments Table
+      document.querySelector('#payments-table tbody').innerHTML = PAYMENT_DATA.map(pay => `
+        <tr>
+          <td>${pay.porefn}</td>
+          <td>${pay.poinvn}</td>
+          <td>${pay.popddt}</td>
+          <td>${pay.posvmy}</td>
+          <td>${formatCurrency(pay.poamtr)}</td>
+          <td>${pay.poclid}</td>
+          <td>${pay.pocnam}</td>
+          <td>${pay.serviceMonthYear || ''}</td>
+          <td>${pay.uci || ''}</td>
+          <td>${pay.auth || ''}</td>
+          <td>${pay.authDates || ''}</td>
+          <td>${pay.totalUnits || ''}</td>
+          <td>${pay.service || ''}</td>
+          <td>${pay.subCode || ''}</td>
+          <td>${pay.unitType || ''}</td>
+          <td>${pay.lineAmount || ''}</td>
+          <td>${pay.notes || ''}</td>
+          <td>${pay.billingMonth || ''}</td>
+          <td>${pay.spnId || ''}</td>
+          <td>${pay.spnCode || ''}</td>
+          <td>${pay.spnName || ''}</td>
+          <td>${pay.lineAmountNum || ''}</td>
+        </tr>
+      `).join('');
+
+      // Providers Table
+      document.querySelector('#providers-table tbody').innerHTML = PROVIDER_DATA.map(p => `
+        <tr>
+          <td>${p.name}</td>
+          <td>${p.invoices}</td>
+          <td>${formatCurrency(p.revenue)}</td>
+          <td>${formatCurrency(p.avgInvoice)}</td>
+          <td>854, 971, 972</td>
+        </tr>
+      `).join('');
+    }
+
+    // Update client KPIs
+    function updateClientKPIs() {
+      document.getElementById('client-total').textContent = CLIENT_DATA.length;
+      document.getElementById('client-active').textContent = CLIENT_DATA.filter(c => c.status === 'active').length;
+      const avgRev = CLIENT_DATA.length > 0 ? CLIENT_DATA.reduce((s, c) => s + c.totalRevenue, 0) / CLIENT_DATA.length : 0;
+      document.getElementById('client-avg-revenue').textContent = formatCurrency(avgRev);
+      document.getElementById('client-new').textContent = '3';
+      document.getElementById('client-churn').textContent = '0%';
+      document.getElementById('client-retention').textContent = '100%';
+    }
+
+    // Update invoice KPIs
+    function updateInvoiceKPIs() {
+      document.getElementById('inv-total').textContent = INVOICE_DATA.length;
+      document.getElementById('inv-paid').textContent = '12';
+      document.getElementById('inv-pending').textContent = '4';
+      document.getElementById('inv-submitted').textContent = '3';
+      document.getElementById('inv-disputed').textContent = '1';
+      document.getElementById('inv-avg').textContent = '$42,280';
+    }
+
+    // Update payment KPIs
+    function updatePaymentKPIs() {
+      const total = PAYMENT_DATA.reduce((s, p) => s + (p.poamtr || 0), 0);
+      document.getElementById('pay-total').textContent = formatCurrency(total);
+      document.getElementById('pay-count').textContent = PAYMENT_DATA.length;
+      document.getElementById('pay-avg').textContent = PAYMENT_DATA.length > 0 ? formatCurrency(total / PAYMENT_DATA.length) : '$0';
+      document.getElementById('pay-pending').textContent = formatCurrency(0);
+      document.getElementById('pay-overdue').textContent = formatCurrency(0);
+      document.getElementById('pay-dso').textContent = '28';
+    }
+
+    // Update provider KPIs
+    function updateProviderKPIs() {
+      document.getElementById('prov-total').textContent = PROVIDER_DATA.length;
+      document.getElementById('prov-active').textContent = PROVIDER_DATA.length;
+      document.getElementById('prov-top').textContent = PROVIDER_DATA.length > 0 ? PROVIDER_DATA[0].name.split(' ')[0] : '-';
+      document.getElementById('prov-services').textContent = Object.keys(SERVICE_CODES).length;
+      document.getElementById('prov-spn').textContent = PROVIDER_DATA.length;
+      document.getElementById('prov-revenue').textContent = PROVIDER_DATA.length > 0 ? formatCurrency(PROVIDER_DATA[0].revenue) : '$0';
+    }
+
+    // Navigation
+    function navTo(page) {
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.querySelector(`[data-page="${page}"]`).classList.add('active');
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById(`page-${page}`).classList.add('active');
+
+      if (page === 'clients') updateClientKPIs();
+      if (page === 'invoices') updateInvoiceKPIs();
+      if (page === 'payments') updatePaymentKPIs();
+      if (page === 'providers') updateProviderKPIs();
+    }
+
+    document.querySelectorAll('.nav-item').forEach(n => {
+      n.addEventListener('click', () => navTo(n.dataset.page));
+    });
+
+    // Provider filter event listener
+    document.getElementById('provider-filter').addEventListener('change', applyProviderFilter);
+
+    document.querySelectorAll('[data-range]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-range]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+
+    // Initialize
+    async function init() {
+      await loadData();
+      // Apply default provider filter to show only CHOICE HOME HEALTHCARE
+      applyProviderFilter();
+    }
+    init();
+  </script>
+</body>
+</html>

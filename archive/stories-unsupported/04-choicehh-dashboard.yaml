@@ -1,0 +1,48 @@
+stories:
+  - name: "Dashboard loads with Total Revenue and YoY"
+    url: "http://localhost:8000/dashboard/"
+    workflow: |
+      Navigate to http://localhost:8000/dashboard/
+      Verify the page loads with Total Revenue displayed
+      Verify YoY Growth percentage is visible
+      Verify at least 2 charts are visible
+      Verify the period selector buttons are present in the topbar
+
+  - name: "Navigate to Clients page"
+    url: "http://localhost:8000/dashboard/"
+    workflow: |
+      Navigate to http://localhost:8000/dashboard/
+      Click on "Clients" in the sidebar navigation
+      Verify the Clients page loads with a table
+      Verify client data is visible in the table
+
+  - name: "Navigate to Invoices page"
+    url: "http://localhost:8000/dashboard/"
+    workflow: |
+      Navigate to http://localhost:8000/dashboard/
+      Click on "Invoices" in the sidebar navigation
+      Verify the Invoices page loads with invoice table
+      Verify at least one invoice is visible in the table
+
+  - name: "Navigate to Payments page"
+    url: "http://localhost:8000/dashboard/"
+    workflow: |
+      Navigate to http://localhost:8000/dashboard/
+      Click on "Payments" in the sidebar navigation
+      Verify the Payments page loads with payment table
+      Verify payment data is visible
+
+  - name: "Navigate to Reconciliation page"
+    url: "http://localhost:8000/dashboard/"
+    workflow: |
+      Navigate to http://localhost:8000/dashboard/
+      Click on "Reconciliation" in the sidebar navigation
+      Verify the Reconciliation page loads with Total Billed and Total Paid figures
+      Verify the variance table is visible
+
+  - name: "Navigate to Trends page"
+    url: "http://localhost:8000/dashboard/"
+    workflow: |
+      Navigate to http://localhost:8000/dashboard/
+      Click on "Trends" in the sidebar navigation
+      Verify the Trends page loads with charts

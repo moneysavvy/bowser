@@ -59,3 +59,23 @@ images/*.webp
 images/*.mov
 
 .DS_Store
+# Bowser artifacts (keep directory)
+artifacts/**
+!artifacts/.gitkeep
+
+# Office lock files
+~$*
+
+# Screenshots runtime (legacy + new)
+screenshots/**/*
+!screenshots/.gitkeep
+
+# Heavy / experimental archive trees (kept on disk; not in git)
+archive/shannon/
+archive/hyperbrowser-app-examples/
+archive/one-offs/
+archive/jcan/
+archive/example-app/
+.cursor/
+archive/examples-generated/.build-logs/
+.claude/settings.local.json

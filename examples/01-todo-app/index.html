@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Todo App</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-gradient-start: #0f0f23;
+      --bg-gradient-mid: #1a1a3e;
+      --bg-gradient-end: #0d0d1f;
+      --card-bg: rgba(255, 255, 255, 0.03);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --accent: #6366f1;
+      --accent-hover: #818cf8;
+      --accent-glow: rgba(99, 102, 241, 0.4);
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --danger: #ef4444;
+      --danger-hover: #f87171;
+      --success: #22c55e;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-mid) 50%, var(--bg-gradient-end) 100%);
+      color: var(--text-primary);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.15), transparent);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    #app {
+      width: 100%;
+      max-width: 520px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 2rem;
+      animation: fadeSlideDown 0.6s ease-out;
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.02em;
+    }
+
+    .header p {
+      color: var(--text-secondary);
+      margin-top: 0.5rem;
+      font-size: 0.95rem;
+    }
+
+    .storage-badge {
+      display: inline-block;
+      margin-top: 0.75rem;
+      padding: 0.25rem 0.75rem;
+      background: rgba(99, 102, 241, 0.2);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: 999px;
+      font-size: 0.75rem;
+      color: #a5b4fc;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+      overflow: hidden;
+      animation: fadeSlideUp 0.5s ease-out 0.2s both;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 0.75rem;
+      padding: 1.25rem;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    .todo-input {
+      flex: 1;
+      padding: 0.875rem 1rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-size: 1rem;
+      font-family: inherit;
+      transition: var(--transition);
+    }
+
+    .todo-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .todo-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .add-btn {
+      padding: 0.875rem 1.5rem;
+      background: linear-gradient(135deg, var(--accent), #4f46e5);
+      border: none;
+      border-radius: var(--radius-sm);
+      color: white;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: var(--transition);
+      white-space: nowrap;
+    }
+
+    .add-btn:hover {
+      background: linear-gradient(135deg, var(--accent-hover), #6366f1);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px var(--accent-glow);
+    }
+
+    .add-btn:active {
+      transform: translateY(0);
+    }
+
+    .filters {
+      display: flex;
+      gap: 0.5rem;
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--card-border);
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      padding: 0.5rem 1rem;
+      background: transparent;
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      font-family: inherit;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .filter-btn:hover {
+      color: var(--text-primary);
+      border-color: var(--text-muted);
+    }
+
+    .filter-btn.active {
+      background: rgba(99, 102, 241, 0.2);
+      border-color: var(--accent);
+      color: #a5b4fc;
+    }
+
+    .todo-list {
+      list-style: none;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .todo-list::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .todo-list::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .todo-list::-webkit-scrollbar-thumb {
+      background: var(--card-border);
+      border-radius: 3px;
+    }
+
+    .todo-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--card-border);
+      transition: var(--transition);
+      animation: todoSlideIn 0.3s ease-out;
+    }
+
+    .todo-item:last-child {
+      border-bottom: none;
+    }
+
+    .todo-item:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .todo-item.completed .todo-text {
+      text-decoration: line-through;
+      color: var(--text-muted);
+    }
+
+    .todo-checkbox {
+      width: 22px;
+      height: 22px;
+      min-width: 22px;
+      border: 2px solid var(--card-border);
+      border-radius: 6px;
+      background: transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition);
+      flex-shrink: 0;
+    }
+
+    .todo-item.completed .todo-checkbox {
+      background: var(--success);
+      border-color: var(--success);
+    }
+
+    .todo-checkbox::after {
+      content: '✓';
+      color: white;
+      font-size: 12px;
+      font-weight: bold;
+      opacity: 0;
+      transition: var(--transition);
+    }
+
+    .todo-item.completed .todo-checkbox::after {
+      opacity: 1;
+    }
+
+    .todo-text {
+      flex: 1;
+      font-size: 1rem;
+      color: var(--text-primary);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .delete-btn {
+      width: 32px;
+      height: 32px;
+      min-width: 32px;
+      border: none;
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition);
+      opacity: 0.6;
+    }
+
+    .todo-item:hover .delete-btn {
+      opacity: 1;
+    }
+
+    .delete-btn:hover {
+      background: rgba(239, 68, 68, 0.2);
+      color: var(--danger);
+    }
+
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.25rem;
+      border-top: 1px solid var(--card-border);
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+    }
+
+    .empty-state {
+      padding: 3rem 2rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    .empty-state-icon {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+
+    @keyframes fadeSlideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeSlideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes todoSlideIn {
+      from {
+        opacity: 0;
+        transform: translateX(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    (function() {
+      const SUPABASE_URL = 'https://aayokobrxxndsrcsmzcg.supabase.co';
+      const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFheW9rb2JyeHhuZHNyY3NtemNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3NjM0MDksImV4cCI6MjA2MzMzOTQwOX0.mtBmXPjkFgGjvDqp2B-l-deNoNtv75sSZQVq9ELjzL4';
+      const STORAGE_KEY = 'todo-app-items';
+
+      let supabase = null;
+      let useSupabase = false;
+
+      async function initSupabase() {
+        try {
+          supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+          const { data, error } = await supabase.from('todos').select('*').limit(1);
+          if (error) throw error;
+          useSupabase = true;
+          return true;
+        } catch (e) {
+          useSupabase = false;
+          return false;
+        }
+      }
+
+      async function fetchTodos() {
+        if (useSupabase && supabase) {
+          try {
+            const { data, error } = await supabase.from('todos').select('*').order('created_at', { ascending: true });
+            if (error) throw error;
+            return data || [];
+          } catch (e) {
+            useSupabase = false;
+            return getFromStorage();
+          }
+        }
+        return getFromStorage();
+      }
+
+      function getFromStorage() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          return raw ? JSON.parse(raw) : [];
+        } catch {
+          return [];
+        }
+      }
+
+      function saveToStorage(todos) {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+        } catch (e) {}
+      }
+
+      async function addTodo(text) {
+        const todo = {
+          id: crypto.randomUUID(),
+          text: text.trim(),
+          completed: false,
+          created_at: new Date().toISOString()
+        };
+
+        if (useSupabase && supabase) {
+          try {
+            const { error } = await supabase.from('todos').insert([todo]);
+            if (error) throw error;
+            return todo;
+          } catch (e) {
+            useSupabase = false;
+          }
+        }
+
+        const items = getFromStorage();
+        items.push(todo);
+        saveToStorage(items);
+        return todo;
+      }
+
+      async function toggleTodo(id) {
+        if (useSupabase && supabase) {
+          try {
+            const items = await fetchTodos();
+            const item = items.find(t => t.id === id);
+            if (!item) return;
+            const { error } = await supabase.from('todos').update({ completed: !item.completed }).eq('id', id);
+            if (error) throw error;
+            return;
+          } catch (e) {
+            useSupabase = false;
+          }
+        }
+
+        const items = getFromStorage();
+        const idx = items.findIndex(t => t.id === id);
+        if (idx === -1) return;
+        items[idx].completed = !items[idx].completed;
+        saveToStorage(items);
+      }
+
+      async function deleteTodo(id) {
+        if (useSupabase && supabase) {
+          try {
+            const { error } = await supabase.from('todos').delete().eq('id', id);
+            if (error) throw error;
+            return;
+          } catch (e) {
+            useSupabase = false;
+          }
+        }
+
+        const items = getFromStorage().filter(t => t.id !== id);
+        saveToStorage(items);
+      }
+
+      let state = {
+        todos: [],
+        filter: 'all'
+      };
+
+      function setState(updates) {
+        state = { ...state, ...updates };
+        render();
+      }
+
+      function getFilteredTodos() {
+        const { todos, filter } = state;
+        if (filter === 'active') return todos.filter(t => !t.completed);
+        if (filter === 'completed') return todos.filter(t => t.completed);
+        return todos;
+      }
+
+      function getActiveCount() {
+        return state.todos.filter(t => !t.completed).length;
+      }
+
+      function escapeHtml(s) {
+        const div = document.createElement('div');
+        div.textContent = s;
+        return div.innerHTML;
+      }
+
+      function render() {
+        const app = document.getElementById('app');
+        const storageMode = useSupabase ? 'Supabase' : 'localStorage';
+        const filtered = getFilteredTodos();
+        const activeCount = getActiveCount();
+
+        app.innerHTML = `
+          <div class="header">
+            <h1>Todo</h1>
+            <p>Stay organized. Get things done.</p>
+            <span class="storage-badge">${storageMode}</span>
+          </div>
+          <div class="card">
+            <div class="input-row">
+              <input type="text" class="todo-input" placeholder="What needs to be done?" id="todoInput" autocomplete="off" />
+              <button class="add-btn" id="addBtn">Add</button>
+            </div>
+            <div class="filters">
+              <button class="filter-btn ${state.filter === 'all' ? 'active' : ''}" data-filter="all">All</button>
+              <button class="filter-btn ${state.filter === 'active' ? 'active' : ''}" data-filter="active">Active</button>
+              <button class="filter-btn ${state.filter === 'completed' ? 'active' : ''}" data-filter="completed">Completed</button>
+            </div>
+            <ul class="todo-list">
+              ${filtered.length === 0
+                ? '<li class="empty-state"><div class="empty-state-icon">📝</div><div>No todos yet. Add one above!</div></li>'
+                : filtered.map(t => `
+                  <li class="todo-item ${t.completed ? 'completed' : ''}" data-id="${t.id}">
+                    <div class="todo-checkbox" data-action="toggle"></div>
+                    <span class="todo-text" data-action="toggle">${escapeHtml(t.text)}</span>
+                    <button class="delete-btn" data-action="delete" aria-label="Delete">×</button>
+                  </li>
+                `).join('')
+              }
+            </ul>
+            <div class="footer">
+              <span>${activeCount} item${activeCount !== 1 ? 's' : ''} left</span>
+            </div>
+          </div>
+        `;
+
+        const input = document.getElementById('todoInput');
+        const addBtn = document.getElementById('addBtn');
+
+        function handleAdd() {
+          const text = input.value.trim();
+          if (!text) return;
+          addTodo(text).then(() => {
+            fetchTodos().then(todos => setState({ todos }));
+            input.value = '';
+          });
+        }
+
+        addBtn.addEventListener('click', handleAdd);
+        input.addEventListener('keydown', e => {
+          if (e.key === 'Enter') handleAdd();
+        });
+
+        app.querySelectorAll('.filter-btn').forEach(btn => {
+          btn.addEventListener('click', () => setState({ filter: btn.dataset.filter }));
+        });
+
+        app.querySelectorAll('.todo-item').forEach(item => {
+          const id = item.dataset.id;
+          if (!id) return;
+          item.querySelectorAll('[data-action="toggle"]').forEach(el => {
+            el.addEventListener('click', () => {
+              toggleTodo(id).then(() => fetchTodos().then(todos => setState({ todos })));
+            });
+          });
+          item.querySelector('[data-action="delete"]').addEventListener('click', () => {
+            deleteTodo(id).then(() => fetchTodos().then(todos => setState({ todos })));
+          });
+        });
+      }
+
+      async function init() {
+        const ok = await initSupabase();
+        const todos = await fetchTodos();
+        setState({ todos });
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>

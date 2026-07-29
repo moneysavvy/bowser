@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Observation Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0a0a1a; --bg2: #111128; --bg3: #1a1a3e;
+      --card: rgba(255,255,255,0.03); --border: rgba(255,255,255,0.08);
+      --accent: #6366f1; --accent2: #818cf8; --glow: rgba(99,102,241,0.3);
+      --green: #22c55e; --red: #ef4444; --yellow: #f59e0b; --cyan: #06b6d4;
+      --text: #f8fafc; --text2: #94a3b8; --text3: #64748b;
+      --radius: 12px; --mono: 'JetBrains Mono', monospace;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'DM Sans',system-ui,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+    .layout { display:grid; grid-template-columns:240px 1fr; min-height:100vh; }
+    .sidebar { background:var(--bg2); border-right:1px solid var(--border); padding:1.5rem 0; display:flex; flex-direction:column; }
+    .logo { padding:0 1.5rem 1.5rem; border-bottom:1px solid var(--border); margin-bottom:1rem; }
+    .logo h1 { font-size:1.1rem; background:linear-gradient(135deg,#fff,#a5b4fc); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .logo p { font-size:0.7rem; color:var(--text3); margin-top:0.25rem; }
+    .nav-item { display:flex; align-items:center; gap:0.75rem; padding:0.75rem 1.5rem; color:var(--text2); cursor:pointer; transition:all 0.15s; font-size:0.85rem; border-left:3px solid transparent; }
+    .nav-item:hover { background:rgba(255,255,255,0.04); color:var(--text); }
+    .nav-item.active { background:rgba(99,102,241,0.1); color:var(--accent2); border-left-color:var(--accent); }
+    .nav-dot { width:8px; height:8px; border-radius:50%; }
+    .nav-count { margin-left:auto; font-size:0.7rem; background:rgba(255,255,255,0.08); padding:2px 8px; border-radius:10px; }
+    .main { overflow-y:auto; max-height:100vh; }
+    .topbar { display:flex; justify-content:space-between; align-items:center; padding:1rem 2rem; border-bottom:1px solid var(--border); background:var(--bg2); position:sticky; top:0; z-index:10; }
+    .topbar-left { display:flex; align-items:center; gap:1rem; }
+    .topbar h2 { font-size:1.1rem; }
+    .live-dot { width:8px; height:8px; border-radius:50%; background:var(--green); animation:pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(34,197,94,0.4)} 50%{opacity:0.7;box-shadow:0 0 0 6px rgba(34,197,94,0)} }
+    .topbar-actions { display:flex; gap:0.5rem; }
+    .tbtn { padding:0.4rem 0.8rem; background:rgba(255,255,255,0.06); border:1px solid var(--border); border-radius:8px; color:var(--text2); font-size:0.8rem; cursor:pointer; transition:all 0.15s; font-family:inherit; }
+    .tbtn:hover { background:rgba(255,255,255,0.1); color:var(--text); }
+    .tbtn.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+    .content { padding:1.5rem 2rem; }
+    .stats { display:grid; grid-template-columns:repeat(5,1fr); gap:1rem; margin-bottom:1.5rem; }
+    .stat { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem; transition:all 0.2s; }
+    .stat:hover { border-color:rgba(99,102,241,0.3); transform:translateY(-2px); }
+    .stat-val { font-size:1.75rem; font-weight:700; }
+    .stat-val.green { color:var(--green); } .stat-val.red { color:var(--red); } .stat-val.yellow { color:var(--yellow); } .stat-val.accent { color:var(--accent2); } .stat-val.cyan { color:var(--cyan); }
+    .stat-label { font-size:0.75rem; color:var(--text3); margin-top:0.25rem; }
+    .stat-change { font-size:0.7rem; margin-top:0.5rem; display:flex; align-items:center; gap:0.25rem; }
+    .stat-change.up { color:var(--green); } .stat-change.down { color:var(--red); }
+    .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.5rem; }
+    .grid-3 { display:grid; grid-template-columns:2fr 1fr; gap:1rem; margin-bottom:1.5rem; }
+    .panel { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+    .panel-head { display:flex; justify-content:space-between; align-items:center; padding:1rem 1.25rem; border-bottom:1px solid var(--border); }
+    .panel-title { font-size:0.85rem; font-weight:600; }
+    .panel-badge { font-size:0.65rem; padding:2px 8px; border-radius:10px; }
+    .panel-body { padding:1rem 1.25rem; }
+    .chart-wrap { position:relative; height:220px; }
+    .log-list { max-height:300px; overflow-y:auto; }
+    .log-entry { display:flex; gap:0.75rem; padding:0.6rem 0; border-bottom:1px solid rgba(255,255,255,0.04); font-size:0.8rem; align-items:flex-start; }
+    .log-entry:last-child { border-bottom:none; }
+    .log-time { color:var(--text3); font-family:var(--mono); font-size:0.7rem; white-space:nowrap; min-width:60px; }
+    .log-icon { font-size:0.9rem; }
+    .log-msg { color:var(--text2); flex:1; line-height:1.4; }
+    .log-msg strong { color:var(--text); font-weight:500; }
+    .agent-list { display:flex; flex-direction:column; gap:0.5rem; }
+    .agent-row { display:flex; align-items:center; gap:0.75rem; padding:0.75rem; background:rgba(255,255,255,0.02); border-radius:8px; border:1px solid rgba(255,255,255,0.04); transition:all 0.15s; }
+    .agent-row:hover { border-color:var(--border); }
+    .agent-status { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+    .agent-status.running { background:var(--green); box-shadow:0 0 8px rgba(34,197,94,0.4); }
+    .agent-status.idle { background:var(--yellow); } .agent-status.error { background:var(--red); } .agent-status.done { background:var(--text3); }
+    .agent-info { flex:1; }
+    .agent-name { font-size:0.85rem; font-weight:500; }
+    .agent-meta { font-size:0.7rem; color:var(--text3); margin-top:2px; }
+    .agent-metric { text-align:right; }
+    .agent-metric-val { font-size:0.85rem; font-weight:600; font-family:var(--mono); }
+    .agent-metric-label { font-size:0.65rem; color:var(--text3); }
+    .perf-bar-wrap { display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem; }
+    .perf-label { font-size:0.75rem; color:var(--text3); min-width:80px; }
+    .perf-bar-bg { flex:1; height:6px; background:rgba(255,255,255,0.06); border-radius:3px; overflow:hidden; }
+    .perf-bar { height:100%; border-radius:3px; transition:width 1s ease; }
+    .perf-val { font-size:0.7rem; color:var(--text2); font-family:var(--mono); min-width:45px; text-align:right; }
+    .app-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:0.75rem; }
+    .app-card { background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:8px; padding:1rem; transition:all 0.15s; cursor:pointer; }
+    .app-card:hover { border-color:var(--accent); transform:translateY(-2px); }
+    .app-card-name { font-size:0.85rem; font-weight:500; margin-bottom:0.25rem; }
+    .app-card-url { font-size:0.65rem; color:var(--text3); margin-bottom:0.5rem; word-break:break-all; }
+    .app-card-stats { display:flex; gap:0.75rem; }
+    .app-card-stat { font-size:0.7rem; }
+    .app-card-stat span { color:var(--text3); }
+    .status-ok { color:var(--green); } .status-err { color:var(--red); } .status-warn { color:var(--yellow); }
+    .terminal { background:#0d0d1a; border-radius:8px; padding:1rem; font-family:var(--mono); font-size:0.75rem; max-height:200px; overflow-y:auto; line-height:1.6; }
+    .t-prompt { color:var(--accent2); } .t-cmd { color:var(--text); } .t-ok { color:var(--green); } .t-err { color:var(--red); } .t-warn { color:var(--yellow); } .t-dim { color:var(--text3); }
+    @media(max-width:900px) { .layout{grid-template-columns:1fr;} .sidebar{display:none;} .stats{grid-template-columns:repeat(2,1fr);} .grid-2,.grid-3{grid-template-columns:1fr;} }
+    .tab-row { display:flex; gap:2px; margin-bottom:1rem; }
+    .tab { padding:0.5rem 1rem; font-size:0.8rem; background:rgba(255,255,255,0.04); border:1px solid transparent; border-radius:8px 8px 0 0; cursor:pointer; color:var(--text3); transition:all 0.15s; font-family:inherit; }
+    .tab.active { background:rgba(99,102,241,0.15); color:var(--accent2); border-color:var(--border); border-bottom-color:transparent; }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="logo">
+        <h1>Bowser Agent Hub</h1>
+        <p>Observation Dashboard</p>
+      </div>
+      <div class="nav-item active" data-page="overview">
+        <span>📊</span><span>Overview</span>
+      </div>
+      <div class="nav-item" data-page="agents">
+        <span>🤖</span><span>Agents</span><span class="nav-count" id="agent-count">0</span>
+      </div>
+      <div class="nav-item" data-page="apps">
+        <span>🌐</span><span>Apps</span><span class="nav-count" id="app-count">0</span>
+      </div>
+      <div class="nav-item" data-page="builds">
+        <span>🔨</span><span>Builds</span>
+      </div>
+      <div class="nav-item" data-page="logs">
+        <span>📜</span><span>Live Logs</span>
+      </div>
+      <div class="nav-item" data-page="perf">
+        <span>⚡</span><span>Performance</span>
+      </div>
+      <div style="flex:1"></div>
+      <div class="nav-item" data-page="settings">
+        <span>⚙️</span><span>Settings</span>
+      </div>
+    </aside>
+
+    <div class="main">
+      <div class="topbar">
+        <div class="topbar-left">
+          <h2 id="page-title">Overview</h2>
+          <div class="live-dot"></div>
+          <span style="font-size:0.75rem;color:var(--text3)" id="update-time">Updated just now</span>
+        </div>
+        <div class="topbar-actions">
+          <button class="tbtn" id="refresh-btn">↻ Refresh</button>
+          <button class="tbtn" id="export-btn">↓ Export</button>
+          <button class="tbtn primary" id="run-btn">▶ Run All Tests</button>
+        </div>
+      </div>
+
+      <div class="content" id="page-content"></div>
+    </div>
+  </div>
+
+  <script>
+    const STATE = {
+      agents: [
+        { id:'qa-1', name:'QA Agent (Todo)', type:'bowser-qa', status:'running', started:'2m ago', tokens:2480, cost:0.012, task:'Verifying todo add/delete flow' },
+        { id:'qa-2', name:'QA Agent (Chat)', type:'bowser-qa', status:'running', started:'1m ago', tokens:1850, cost:0.009, task:'Testing realtime message send' },
+        { id:'qa-3', name:'QA Agent (Kanban)', type:'bowser-qa', status:'done', started:'5m ago', tokens:3200, cost:0.016, task:'Drag-and-drop column test', duration:'45s' },
+        { id:'build-1', name:'Fast Builder', type:'generalPurpose', status:'idle', started:'8m ago', tokens:12400, cost:0.062, task:'Built 5 apps in parallel' },
+        { id:'diff-1', name:'Code Review Agent', type:'generalPurpose', status:'error', started:'3m ago', tokens:890, cost:0.004, task:'Diff analysis failed - timeout' },
+        { id:'pw-1', name:'Playwright Agent', type:'playwright-bowser', status:'running', started:'30s ago', tokens:420, cost:0.002, task:'Screenshot capture cycle' },
+      ],
+      apps: [
+        { name:'01-todo-app', url:'https://01-todo-app.vercel.app', status:200, ttfb:118, size:'16KB' },
+        { name:'02-realtime-chat', url:'https://02-realtime-chat.vercel.app', status:200, ttfb:132, size:'14KB' },
+        { name:'03-analytics-dashboard', url:'https://03-analytics-dashboard.vercel.app', status:200, ttfb:118, size:'21KB' },
+        { name:'04-ecommerce-gallery', url:'https://04-ecommerce-gallery.vercel.app', status:200, ttfb:120, size:'22KB' },
+        { name:'05-kanban-board', url:'https://05-kanban-board.vercel.app', status:200, ttfb:137, size:'25KB' },
+        { name:'06-pomodoro-timer', url:'localhost:5500', status:200, ttfb:5, size:'10KB' },
+        { name:'07-expense-tracker', url:'localhost:5500', status:200, ttfb:5, size:'12KB' },
+        { name:'08-markdown-editor', url:'localhost:5500', status:200, ttfb:4, size:'11KB' },
+        { name:'09-weather-dashboard', url:'localhost:5500', status:200, ttfb:6, size:'13KB' },
+        { name:'10-quiz-game', url:'localhost:5500', status:200, ttfb:5, size:'12KB' },
+      ],
+      builds: [
+        { id:1, time:'2m ago', apps:5, method:'parallel+template', model:'MiniMax-M2.5-hs', wall:'21s', status:'ok' },
+        { id:2, time:'15m ago', apps:5, method:'sequential', model:'Opus 4.6', wall:'5m 12s', status:'ok' },
+        { id:3, time:'22m ago', apps:1, method:'single', model:'MiniMax-M2.5', wall:'8s', status:'fail' },
+      ],
+      logs: [],
+      perfHistory: []
+    };
+
+    function genLogs() {
+      const msgs = [
+        ['🟢','Agent <strong>qa-1</strong> navigated to todo app'],
+        ['📸','Screenshot captured: <strong>homepage_load.png</strong>'],
+        ['✅','Assertion passed: todo input field visible'],
+        ['⌨️','Typed "Buy groceries" into input'],
+        ['🖱️','Clicked <strong>Add</strong> button'],
+        ['✅','Assertion passed: todo item appeared in list'],
+        ['🔨','Build started: <strong>06-pomodoro-timer</strong>'],
+        ['⚡','Token usage: 2,480 tokens (est. $0.012)'],
+        ['🌐','HTTP 200 from 01-todo-app.vercel.app (118ms)'],
+        ['⚠️','Agent <strong>diff-1</strong> timeout after 30s'],
+        ['🤖','Agent <strong>pw-1</strong> spawned playwright session'],
+        ['📊','Performance sample: avg TTFB 124ms across 10 apps'],
+        ['✅','Build complete: 5/5 apps passed validation'],
+        ['🔄','Auto-refresh triggered'],
+        ['💰','Session cost so far: <strong>$0.105</strong>'],
+      ];
+      const now = new Date();
+      for(let i=0;i<30;i++) {
+        const m = msgs[Math.floor(Math.random()*msgs.length)];
+        const t = new Date(now - i*3000);
+        STATE.logs.push({ time:t.toTimeString().slice(0,5), icon:m[0], msg:m[1] });
+      }
+    }
+    genLogs();
+
+    function genPerfData() {
+      for(let i=29;i>=0;i--) {
+        STATE.perfHistory.push({
+          time: `${i}m ago`,
+          ttfb: 100+Math.random()*80,
+          tokens: Math.floor(200+Math.random()*600),
+          cost: +(Math.random()*0.005).toFixed(4)
+        });
+      }
+    }
+    genPerfData();
+
+    const pages = {
+      overview() {
+        const running = STATE.agents.filter(a=>a.status==='running').length;
+        const totalTokens = STATE.agents.reduce((s,a)=>s+a.tokens,0);
+        const totalCost = STATE.agents.reduce((s,a)=>s+a.cost,0);
+        const avgTTFB = Math.round(STATE.apps.reduce((s,a)=>s+a.ttfb,0)/STATE.apps.length);
+        const appsOk = STATE.apps.filter(a=>a.status===200).length;
+
+        return `
+          <div class="stats">
+            <div class="stat"><div class="stat-val accent">${running}</div><div class="stat-label">Active Agents</div><div class="stat-change up">↑ of ${STATE.agents.length} total</div></div>
+            <div class="stat"><div class="stat-val cyan">${totalTokens.toLocaleString()}</div><div class="stat-label">Tokens Used</div><div class="stat-change up">↑ 12% this session</div></div>
+            <div class="stat"><div class="stat-val yellow">$${totalCost.toFixed(3)}</div><div class="stat-label">Session Cost</div><div class="stat-change down">↓ 40% vs sequential</div></div>
+            <div class="stat"><div class="stat-val green">${avgTTFB}ms</div><div class="stat-label">Avg TTFB</div><div class="stat-change up">↑ all under 200ms</div></div>
+            <div class="stat"><div class="stat-val green">${appsOk}/${STATE.apps.length}</div><div class="stat-label">Apps Healthy</div><div class="stat-change up">↑ 100% uptime</div></div>
+          </div>
+
+          <div class="grid-3">
+            <div class="panel">
+              <div class="panel-head"><span class="panel-title">Token & Cost Trend</span><span class="panel-badge" style="background:rgba(6,182,212,0.15);color:var(--cyan)">30m window</span></div>
+              <div class="panel-body"><div class="chart-wrap"><canvas id="trend-chart"></canvas></div></div>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><span class="panel-title">Agent Status</span></div>
+              <div class="panel-body">
+                <div class="agent-list">${STATE.agents.slice(0,4).map(a=>`
+                  <div class="agent-row">
+                    <div class="agent-status ${a.status}"></div>
+                    <div class="agent-info"><div class="agent-name">${a.name}</div><div class="agent-meta">${a.task}</div></div>
+                    <div class="agent-metric"><div class="agent-metric-val">${a.tokens}</div><div class="agent-metric-label">tokens</div></div>
+                  </div>`).join('')}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="panel">
+              <div class="panel-head"><span class="panel-title">Live Activity Log</span><span class="panel-badge" style="background:rgba(34,197,94,0.15);color:var(--green)">streaming</span></div>
+              <div class="panel-body"><div class="log-list">${STATE.logs.slice(0,12).map(l=>`
+                <div class="log-entry"><span class="log-time">${l.time}</span><span class="log-icon">${l.icon}</span><span class="log-msg">${l.msg}</span></div>
+              `).join('')}</div></div>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><span class="panel-title">TTFB Distribution</span></div>
+              <div class="panel-body"><div class="chart-wrap"><canvas id="ttfb-chart"></canvas></div></div>
+            </div>
+          </div>
+        `;
+      },
+
+      agents() {
+        return `
+          <div class="tab-row">
+            <button class="tab active">All (${STATE.agents.length})</button>
+            <button class="tab">Running (${STATE.agents.filter(a=>a.status==='running').length})</button>
+            <button class="tab">Completed</button>
+            <button class="tab">Errors</button>
+          </div>
+          <div class="agent-list">${STATE.agents.map(a=>`
+            <div class="agent-row">
+              <div class="agent-status ${a.status}"></div>
+              <div class="agent-info">
+                <div class="agent-name">${a.name} <span style="font-size:0.7rem;color:var(--text3);background:rgba(255,255,255,0.06);padding:2px 6px;border-radius:4px;margin-left:4px">${a.type}</span></div>
+                <div class="agent-meta">${a.task} · started ${a.started}${a.duration?' · took '+a.duration:''}</div>
+              </div>
+              <div class="agent-metric"><div class="agent-metric-val">${a.tokens.toLocaleString()}</div><div class="agent-metric-label">tokens</div></div>
+              <div class="agent-metric"><div class="agent-metric-val">$${a.cost.toFixed(3)}</div><div class="agent-metric-label">cost</div></div>
+            </div>`).join('')}
+          </div>
+        `;
+      },
+
+      apps() {
+        return `
+          <div class="tab-row">
+            <button class="tab active">All Apps (${STATE.apps.length})</button>
+            <button class="tab status-ok">Healthy (${STATE.apps.filter(a=>a.status===200).length})</button>
+            <button class="tab">Vercel</button>
+            <button class="tab">Local</button>
+          </div>
+          <div class="app-grid">${STATE.apps.map(a=>`
+            <div class="app-card" onclick="window.open('${a.url.startsWith('http')?a.url:'http://'+a.url}','_blank')">
+              <div class="app-card-name">${a.status===200?'🟢':'🔴'} ${a.name}</div>
+              <div class="app-card-url">${a.url}</div>
+              <div class="app-card-stats">
+                <div class="app-card-stat"><span>TTFB</span> ${a.ttfb}ms</div>
+                <div class="app-card-stat"><span>Size</span> ${a.size}</div>
+                <div class="app-card-stat ${a.status===200?'status-ok':'status-err'}">HTTP ${a.status}</div>
+              </div>
+            </div>`).join('')}
+          </div>
+        `;
+      },
+
+      builds() {
+        return `
+          <div class="panel" style="margin-bottom:1rem">
+            <div class="panel-head"><span class="panel-title">Build History</span><button class="tbtn primary" style="font-size:0.75rem">+ New Build</button></div>
+            <div class="panel-body">
+              ${STATE.builds.map(b=>`
+                <div class="log-entry" style="padding:0.8rem 0">
+                  <span class="log-icon">${b.status==='ok'?'✅':'❌'}</span>
+                  <span class="log-msg">
+                    <strong>${b.apps} apps</strong> via ${b.method} · Model: ${b.model} · Wall time: <strong>${b.wall}</strong>
+                    <span style="color:var(--text3);font-size:0.75rem"> · ${b.time}</span>
+                  </span>
+                </div>`).join('')}
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><span class="panel-title">Build Comparison</span></div>
+            <div class="panel-body">
+              <div class="perf-bar-wrap"><span class="perf-label">Parallel+Tmpl</span><div class="perf-bar-bg"><div class="perf-bar" style="width:7%;background:var(--green)"></div></div><span class="perf-val">21s</span></div>
+              <div class="perf-bar-wrap"><span class="perf-label">Sequential</span><div class="perf-bar-bg"><div class="perf-bar" style="width:100%;background:var(--red)"></div></div><span class="perf-val">5m 12s</span></div>
+              <div class="perf-bar-wrap"><span class="perf-label">Cost Parallel</span><div class="perf-bar-bg"><div class="perf-bar" style="width:30%;background:var(--green)"></div></div><span class="perf-val">$0.031</span></div>
+              <div class="perf-bar-wrap"><span class="perf-label">Cost Sequential</span><div class="perf-bar-bg"><div class="perf-bar" style="width:100%;background:var(--yellow)"></div></div><span class="perf-val">$0.105</span></div>
+            </div>
+          </div>
+        `;
+      },
+
+      logs() {
+        return `
+          <div class="terminal" id="live-terminal">${STATE.logs.map(l=>`<div><span class="t-dim">${l.time}</span> ${l.icon} <span class="${l.msg.includes('Error')||l.msg.includes('timeout')?'t-err':l.msg.includes('passed')||l.msg.includes('complete')?'t-ok':'t-cmd'}">${l.msg}</span></div>`).join('')}</div>
+        `;
+      },
+
+      perf() {
+        return `
+          <div class="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:1.5rem">
+            <div class="stat"><div class="stat-val green">124ms</div><div class="stat-label">Avg TTFB</div></div>
+            <div class="stat"><div class="stat-val cyan">21,240</div><div class="stat-label">Total Tokens (session)</div></div>
+            <div class="stat"><div class="stat-val yellow">$0.105</div><div class="stat-label">Total Cost (session)</div></div>
+            <div class="stat"><div class="stat-val accent">14.8x</div><div class="stat-label">Speed Improvement</div></div>
+          </div>
+          <div class="grid-2">
+            <div class="panel">
+              <div class="panel-head"><span class="panel-title">TTFB per App</span></div>
+              <div class="panel-body">
+                ${STATE.apps.map(a=>`<div class="perf-bar-wrap"><span class="perf-label" style="min-width:140px;font-size:0.7rem">${a.name}</span><div class="perf-bar-bg"><div class="perf-bar" style="width:${Math.min(a.ttfb/2,100)}%;background:${a.ttfb<50?'var(--green)':a.ttfb<130?'var(--cyan)':'var(--yellow)'}"></div></div><span class="perf-val">${a.ttfb}ms</span></div>`).join('')}
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><span class="panel-title">Token Efficiency</span></div>
+              <div class="panel-body"><div class="chart-wrap"><canvas id="perf-chart"></canvas></div></div>
+            </div>
+          </div>
+        `;
+      },
+
+      settings() {
+        return `
+          <div class="panel">
+            <div class="panel-head"><span class="panel-title">Configuration</span></div>
+            <div class="panel-body">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+                <div><label style="font-size:0.8rem;color:var(--text3)">Model</label><select style="width:100%;margin-top:0.25rem;padding:0.6rem;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;font-family:inherit"><option>MiniMax-M2.5-highspeed</option><option>MiniMax-M2.5</option><option>Claude Opus 4.6</option><option>Claude Sonnet 4</option></select></div>
+                <div><label style="font-size:0.8rem;color:var(--text3)">Auto-refresh (sec)</label><input type="number" value="30" style="width:100%;margin-top:0.25rem;padding:0.6rem;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;font-family:inherit"></div>
+                <div><label style="font-size:0.8rem;color:var(--text3)">Parallel Agents Max</label><input type="number" value="5" style="width:100%;margin-top:0.25rem;padding:0.6rem;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;font-family:inherit"></div>
+                <div><label style="font-size:0.8rem;color:var(--text3)">Vercel Scope</label><input type="text" value="tolas-projects-41ed0696" style="width:100%;margin-top:0.25rem;padding:0.6rem;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;font-family:inherit;font-family:var(--mono);font-size:0.8rem"></div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+    };
+
+    function renderPage(name) {
+      document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+      document.querySelector(`[data-page="${name}"]`)?.classList.add('active');
+      document.getElementById('page-title').textContent = {overview:'Overview',agents:'Agents',apps:'Apps',builds:'Builds',logs:'Live Logs',perf:'Performance',settings:'Settings'}[name]||name;
+      document.getElementById('page-content').innerHTML = pages[name]?.() || '<div style="padding:2rem;color:var(--text3)">Page not found</div>';
+
+      if(name==='overview') initOverviewCharts();
+      if(name==='perf') initPerfChart();
+    }
+
+    function initOverviewCharts() {
+      const labels = STATE.perfHistory.map(p=>p.time).reverse();
+      const tokens = STATE.perfHistory.map(p=>p.tokens).reverse();
+      const costs = STATE.perfHistory.map(p=>p.cost*1000).reverse();
+
+      new Chart(document.getElementById('trend-chart'), {
+        type:'line',
+        data:{
+          labels,
+          datasets:[
+            { label:'Tokens', data:tokens, borderColor:'#06b6d4', backgroundColor:'rgba(6,182,212,0.1)', tension:0.4, fill:true, yAxisID:'y' },
+            { label:'Cost (m$)', data:costs, borderColor:'#f59e0b', backgroundColor:'rgba(245,158,11,0.1)', tension:0.4, fill:true, yAxisID:'y1' }
+          ]
+        },
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{color:'#94a3b8',font:{size:10}}}}, scales:{x:{display:false},y:{position:'left',grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#64748b',font:{size:10}}},y1:{position:'right',grid:{display:false},ticks:{color:'#64748b',font:{size:10}}}}, interaction:{intersect:false,mode:'index'} }
+      });
+
+      new Chart(document.getElementById('ttfb-chart'), {
+        type:'bar',
+        data:{
+          labels:STATE.apps.slice(0,5).map(a=>a.name.replace(/^\d+-/,'')),
+          datasets:[{label:'TTFB (ms)',data:STATE.apps.slice(0,5).map(a=>a.ttfb),backgroundColor:['#6366f1','#818cf8','#06b6d4','#22c55e','#f59e0b']}]
+        },
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#64748b',font:{size:9}},grid:{display:false}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#64748b',font:{size:10}}}} }
+      });
+    }
+
+    function initPerfChart() {
+      new Chart(document.getElementById('perf-chart'), {
+        type:'doughnut',
+        data:{
+          labels:['Thinking','Tool Calls','Code Gen','Context'],
+          datasets:[{data:[35,25,30,10],backgroundColor:['#6366f1','#06b6d4','#22c55e','#f59e0b']}]
+        },
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom',labels:{color:'#94a3b8',font:{size:10},padding:12}}} }
+      });
+    }
+
+    document.querySelectorAll('.nav-item').forEach(n=>{
+      n.addEventListener('click',()=>renderPage(n.dataset.page));
+    });
+    document.getElementById('agent-count').textContent=STATE.agents.length;
+    document.getElementById('app-count').textContent=STATE.apps.length;
+    document.getElementById('refresh-btn').addEventListener('click',()=>{
+      document.getElementById('update-time').textContent='Updated just now';
+      renderPage(document.querySelector('.nav-item.active')?.dataset.page||'overview');
+    });
+    document.getElementById('run-btn').addEventListener('click',()=>{
+      STATE.agents.push({id:'qa-new',name:'QA Sweep',type:'bowser-qa',status:'running',started:'now',tokens:0,cost:0,task:'Testing all 10 apps...'});
+      document.getElementById('agent-count').textContent=STATE.agents.length;
+      renderPage('agents');
+    });
+    document.getElementById('export-btn').addEventListener('click',()=>{
+      const blob=new Blob([JSON.stringify(STATE,null,2)],{type:'application/json'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');a.href=url;a.download='agent-dashboard-export.json';a.click();
+    });
+
+    setInterval(()=>{
+      const msgs=[['🔄','Auto health check ping'],['📊','Metrics sample collected'],['✅','All agents responsive']];
+      const m=msgs[Math.floor(Math.random()*msgs.length)];
+      STATE.logs.unshift({time:new Date().toTimeString().slice(0,5),icon:m[0],msg:m[1]});
+      if(STATE.logs.length>50) STATE.logs.pop();
+      const el=document.querySelector('.log-list');
+      if(el){
+        const entry=document.createElement('div');entry.className='log-entry';
+        entry.innerHTML=`<span class="log-time">${STATE.logs[0].time}</span><span class="log-icon">${STATE.logs[0].icon}</span><span class="log-msg">${STATE.logs[0].msg}</span>`;
+        el.prepend(entry);
+        if(el.children.length>15) el.lastChild.remove();
+      }
+      const term=document.getElementById('live-terminal');
+      if(term){
+        term.innerHTML=`<div><span class="t-dim">${STATE.logs[0].time}</span> ${STATE.logs[0].icon} <span class="t-ok">${STATE.logs[0].msg}</span></div>`+term.innerHTML;
+      }
+    },5000);
+
+    renderPage('overview');
+  </script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+stories:
+  - name: "Dashboard loads with charts and data"
+    url: "DEPLOYED_URL"
+    workflow: |
+      Navigate to the app
+      Verify the dashboard loads with stat cards showing numbers
+      Verify at least 2 charts are visible
+      Click the 30d time range selector
+      Verify the charts update (data changes)
+      Verify a recent activity table is visible with rows

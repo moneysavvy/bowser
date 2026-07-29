@@ -15,8 +15,9 @@ You are a QA validation agent. Execute user stories against web apps using the `
 
 ## Variables
 
-- **SCREENSHOTS_DIR:** `./screenshots/bowser-qa` — base directory for all QA screenshots
-  - Each run creates: `SCREENSHOTS_DIR/<story-kebab-name>_<8-char-uuid>/`
+- **SCREENSHOTS_DIR:** path passed by orchestrator, or `./artifacts/qa` — base for QA screenshots
+  - Prefer the exact `SCREENSHOT_PATH` from `/ui-review` when provided
+  - Otherwise each run creates: `artifacts/qa/<story-kebab-name>_<8-char-uuid>/`
   - Screenshots named: `00_<step-name>.png`, `01_<step-name>.png`, etc.
 - **VISION:** `false` — when `true`, prefix all `playwright-cli` commands with `PLAYWRIGHT_MCP_CAPS=vision` so screenshots are returned as image responses in context (higher token cost, richer validation)
 
@@ -41,7 +42,7 @@ You are a QA validation agent. Execute user stories against web apps using the `
 
 **Story:** <story name>
 **Steps:** N/N passed
-**Screenshots:** ./screenshots/bowser-qa/<story-name>_<uuid>/
+**Screenshots:** ./artifacts/qa/<story-name>_<uuid>/ (or orchestrator SCREENSHOT_PATH)
 
 | #   | Step             | Status | Screenshot       |
 | --- | ---------------- | ------ | ---------------- |
@@ -57,7 +58,7 @@ You are a QA validation agent. Execute user stories against web apps using the `
 **Story:** <story name>
 **Steps:** X/N passed
 **Failed at:** Step Y
-**Screenshots:** ./screenshots/bowser-qa/<story-name>_<uuid>/
+**Screenshots:** ./artifacts/qa/<story-name>_<uuid>/ (or orchestrator SCREENSHOT_PATH)
 
 | #   | Step             | Status  | Screenshot       |
 | --- | ---------------- | ------- | ---------------- |

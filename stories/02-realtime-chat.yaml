@@ -1,0 +1,10 @@
+stories:
+  - name: "Send a chat message"
+    url: "http://localhost:3000"
+    workflow: |
+      Navigate to http://localhost:3000
+      Verify the chat app loads with a username prompt or input
+      Enter username "TestUser"
+      Verify the chat interface loads with a message input
+      Type "Hello world!" and send
+      Verify the message appears in the chat area

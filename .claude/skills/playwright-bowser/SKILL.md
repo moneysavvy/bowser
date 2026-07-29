@@ -8,37 +8,45 @@ allowed-tools: Bash
 
 ## Purpose
 
-Automate browsers using `playwright-cli` — a token-efficient CLI for Playwright. Runs headless by default, supports parallel sessions via named sessions (`-s=`), and doesn't load tool schemas into context.
+Automate browsers using `playwright-cli` (`@playwright/cli`) — the July 2026 token-efficient CLI for coding agents. Headless by default, parallel via named sessions (`-s=`), no large MCP tool schemas in context.
+
+**Not interchangeable with Claude-Bowser.** Use this mode for isolation, CI, parallelism, and repeatable QA. Use `/claude-bowser` when you need the user's real Chrome profile.
+
+## Install (July 2026)
+
+```bash
+npm install -g @playwright/cli@latest
+playwright-cli install-browser
+playwright-cli --help
+```
+
+Optional: `playwright-cli install` to initialize workspace config. Prefer current `@playwright/cli` over stale alpha globals.
 
 ## Key Details
 
-- **Headless by default** — pass `--headed` to `open` to see the browser
-- **Parallel sessions** — use `-s=<name>` to run multiple independent browser instances
-- **Persistent profiles** — cookies and storage state preserved between calls
-- **Token-efficient** — CLI-based, no accessibility trees or tool schemas in context
-- **Vision mode** (opt-in) — set `PLAYWRIGHT_MCP_CAPS=vision` to receive screenshots as image responses in context instead of just saving to disk
+- **Headless by default** — pass `--headed` to `open` to watch
+- **Parallel sessions** — `-s=<name>` for independent browsers
+- **Persistent profiles** — `--persistent` keeps cookies/storage across calls
+- **Auth bootstrap** — `state-save` / `state-load` for login reuse; or run a login story once with `--persistent`
+- **Vision mode** (opt-in) — `PLAYWRIGHT_MCP_CAPS=vision` returns screenshots as images in context
+- **Artifacts** — prefer writing under `artifacts/qa/<run-id>/` or paths passed by the orchestrator
 
 ## Sessions
 
-**Always use a named session.** Derive a short, descriptive kebab-case name from the user's prompt. This gives each task a persistent browser profile (cookies, localStorage, history) that accumulates across calls.
+**Always use a named session.** Derive a short kebab-case name from the task.
 
 ```bash
-# Derive session name from prompt context:
-# "test the checkout flow on mystore.com" → -s=mystore-checkout
-# "scrape pricing from competitor.com"    → -s=competitor-pricing
-# "UI test the login page"               → -s=login-ui-test
-
-playwright-cli -s=mystore-checkout open https://mystore.com --persistent
+PLAYWRIGHT_MCP_VIEWPORT_SIZE=1440x900 playwright-cli -s=mystore-checkout open https://mystore.com --persistent
 playwright-cli -s=mystore-checkout snapshot
 playwright-cli -s=mystore-checkout click e12
 ```
 
-Managing sessions:
 ```bash
-playwright-cli list                                     # list all sessions
-playwright-cli close-all                                # close all sessions
-playwright-cli -s=<name> close                          # close specific session
-playwright-cli -s=<name> delete-data                    # wipe session profile
+playwright-cli list
+playwright-cli close-all
+playwright-cli kill-all          # stale/zombie sessions
+playwright-cli -s=<name> close
+playwright-cli -s=<name> delete-data
 ```
 
 ## Quick Reference
@@ -52,49 +60,39 @@ Tabs:       tab-list, tab-new [url], tab-close [index], tab-select <index>
 Save:       screenshot [ref], pdf, screenshot --filename=f
 Storage:    state-save, state-load, cookie-*, localstorage-*, sessionstorage-*
 Network:    route <pattern>, route-list, unroute, network
-DevTools:   console, run-code <code>, tracing-start/stop, video-start/stop
+DevTools:   console, run-code <code>, tracing-start/stop, video-start/stop, show, eval
 Sessions:   -s=<name> <cmd>, list, close-all, kill-all
-Config:     open --headed, open --browser=chrome, resize <w> <h>
+Install:    install, install-browser
+Config:     open --headed, open --browser=chrome|firefox, resize <w> <h>
+Dialogs:    dialog-accept, dialog-dismiss   # cookie banners / modals
 ```
 
 ## Workflow
 
-1. Derive a session name from the user's prompt and open with `--persistent` to preserve cookies/state. Always set the viewport via env var at launch:
+1. Open with named session + viewport:
 ```bash
 PLAYWRIGHT_MCP_VIEWPORT_SIZE=1440x900 playwright-cli -s=<session-name> open <url> --persistent
-# or headed:
+# headed debug:
 PLAYWRIGHT_MCP_VIEWPORT_SIZE=1440x900 playwright-cli -s=<session-name> open <url> --persistent --headed
-# or with vision (screenshots returned as image responses in context):
-PLAYWRIGHT_MCP_VIEWPORT_SIZE=1440x900 PLAYWRIGHT_MCP_CAPS=vision playwright-cli -s=<session-name> open <url> --persistent
 ```
 
-3. Get element references via snapshot:
+2. Snapshot → interact via refs (`click`, `fill`, `type`, `press`).
+
+3. Dismiss first-run noise when needed (`dialog-accept` / `dialog-dismiss` or click the banner ref).
+
+4. Screenshot to the orchestrator path when provided:
 ```bash
-playwright-cli snapshot
+playwright-cli -s=<session-name> screenshot --filename=artifacts/qa/<run>/<step>.png
 ```
 
-4. Interact using refs from snapshot:
-```bash
-playwright-cli click <ref>
-playwright-cli fill <ref> "text"
-playwright-cli type "text"
-playwright-cli press Enter
-```
-
-5. Capture results:
-```bash
-playwright-cli screenshot
-playwright-cli screenshot --filename=output.png
-```
-
-6. **Always close the session when done.** This is not optional — close the named session after finishing your task:
+5. **Always close** when done:
 ```bash
 playwright-cli -s=<session-name> close
 ```
 
 ## Configuration
 
-If a `playwright-cli.json` exists in the working directory, use it automatically. If the user provides a path to a config file, use `--config path/to/config.json`. Otherwise, skip configuration — the env var and CLI defaults are sufficient.
+If `playwright-cli.json` exists in the cwd, it is used. Optional:
 
 ```json
 {
@@ -103,12 +101,12 @@ If a `playwright-cli.json` exists in the working directory, use it automatically
     "launchOptions": { "headless": true },
     "contextOptions": { "viewport": { "width": 1440, "height": 900 } }
   },
-  "outputDir": "./screenshots"
+  "outputDir": "./artifacts/playwright"
 }
 ```
 
 ## Full Help
 
-Run `playwright-cli --help` or `playwright-cli --help <command>` for detailed command usage.
+`playwright-cli --help` and `playwright-cli --help <command>`.
 
-See [docs/playwright-cli.md](docs/playwright-cli.md) for full documentation.
+See [docs/playwright-cli.md](docs/playwright-cli.md) for extended notes.

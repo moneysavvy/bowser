@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Markdown Editor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    :root {
+      --bg-gradient-start: #0f0f23;
+      --bg-gradient-mid: #1a1a3e;
+      --bg-gradient-end: #0d0d1f;
+      --card-bg: rgba(255, 255, 255, 0.03);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --accent: #6366f1;
+      --accent-hover: #818cf8;
+      --accent-glow: rgba(99, 102, 241, 0.4);
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --danger: #ef4444;
+      --danger-hover: #f87171;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-mid) 50%, var(--bg-gradient-end) 100%);
+      color: var(--text-primary);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.15), transparent);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    #app {
+      width: 100%;
+      max-width: 900px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .header { text-align: center; margin-bottom: 2rem; animation: fadeSlideDown 0.6s ease-out; }
+    .header h1 {
+      font-size: 2.5rem; font-weight: 700;
+      background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; letter-spacing: -0.02em;
+    }
+    .header p { color: var(--text-secondary); margin-top: 0.5rem; font-size: 0.95rem; }
+
+    .badge {
+      display: inline-block; margin-top: 0.75rem; padding: 0.25rem 0.75rem;
+      background: rgba(99, 102, 241, 0.2); border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: 999px; font-size: 0.75rem; color: #a5b4fc;
+    }
+
+    .card {
+      background: var(--card-bg); border: 1px solid var(--card-border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+      backdrop-filter: blur(12px); overflow: hidden;
+      animation: fadeSlideUp 0.5s ease-out 0.2s both;
+    }
+
+    .btn {
+      padding: 0.875rem 1.5rem; border: none; border-radius: var(--radius-sm);
+      color: white; font-weight: 600; font-size: 0.95rem; cursor: pointer;
+      transition: var(--transition); white-space: nowrap; font-family: inherit;
+    }
+    .btn-primary { background: linear-gradient(135deg, var(--accent), #4f46e5); }
+    .btn-primary:hover { background: linear-gradient(135deg, var(--accent-hover), #6366f1); transform: translateY(-1px); box-shadow: 0 4px 12px var(--accent-glow); }
+    .btn-ghost { background: rgba(255,255,255,0.06); border: 1px solid var(--card-border); }
+    .btn-ghost:hover { background: rgba(255,255,255,0.1); }
+    .btn-ghost.active { background: var(--accent); border-color: var(--accent); }
+    .btn-danger { background: var(--danger); }
+    .btn-danger:hover { background: var(--danger-hover); }
+    .btn-sm { padding: 0.5rem 1rem; font-size: 0.8rem; }
+
+    .input {
+      flex: 1; padding: 0.875rem 1rem;
+      background: rgba(255, 255, 255, 0.05); border: 1px solid var(--card-border);
+      border-radius: var(--radius-sm); color: var(--text-primary);
+      font-size: 1rem; font-family: inherit; transition: var(--transition);
+    }
+    .input::placeholder { color: var(--text-muted); }
+    .input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+
+    .row { display: flex; gap: 0.75rem; padding: 1.25rem; }
+    .row-border { border-bottom: 1px solid var(--card-border); }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+
+    .stat-card {
+      background: var(--card-bg); border: 1px solid var(--card-border);
+      border-radius: var(--radius); padding: 1.25rem;
+      transition: var(--transition);
+    }
+    .stat-card:hover { border-color: rgba(99, 102, 241, 0.3); transform: translateY(-2px); }
+    .stat-value { font-size: 1.75rem; font-weight: 700; color: var(--accent); }
+    .stat-label { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; }
+
+    .empty { text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.9rem; }
+
+    @keyframes fadeSlideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+    @media (max-width: 640px) {
+      .header h1 { font-size: 1.75rem; }
+      .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+      .row { padding: 1rem; }
+    }
+
+    .editor-container{display:flex;height:calc(100vh - 180px);gap:1px;background:var(--card-border)}.editor-pane{flex:1;display:flex;flex-direction:column;min-width:0}.pane-header{background:var(--card-bg);padding:8px 12px;border-bottom:1px solid var(--card-border);font-size:12px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px}.editor-pane textarea{flex:1;background:#0d0d0d;color:var(--text-primary);border:none;padding:16px;font-family:monospace;font-size:14px;line-height:1.6;resize:none;outline:none}.preview-pane{background:var(--card-bg);overflow-y:auto;padding:16px}.preview-pane h1,.preview-pane h2,.preview-pane h3,.preview-pane h4,.preview-pane h5,.preview-pane h6{color:var(--text-primary);margin:16px 0 8px}.preview-pane h1:first-child,.preview-pane h2:first-child,.preview-pane h3:first-child{margin-top:0}.preview-pane p{color:var(--text-secondary);margin:0 0 12px;line-height:1.6}.preview-pane strong{color:var(--text-primary)}.preview-pane em{color:var(--text-secondary)}.preview-pane a{color:var(--accent);text-decoration:none}.preview-pane a:hover{text-decoration:underline}.preview-pane ul,.preview-pane ol{color:var(--text-secondary);margin:0 0 12px;padding-left:24px}.preview-pane li{margin:4px 0}.preview-pane blockquote{border-left:3px solid var(--accent);padding-left:16px;margin:12px 0;color:var(--text-secondary);font-style:italic}.preview-pane code{background:#1a1a1a;color:var(--accent);padding:2px 6px;border-radius:3px;font-family:monospace;font-size:13px}.preview-pane pre{background:#1a1a1a;border:1px solid var(--card-border);border-radius:6px;padding:12px;overflow-x:auto;margin:12px 0}.preview-pane pre code{background:none;padding:0;border:none}.toolbar{display:flex;gap:4px;margin-bottom:12px;flex-wrap:wrap}.toolbar-btn{background:var(--card-bg);color:var(--text-primary);border:1px solid var(--card-border);padding:6px 10px;font-size:13px;cursor:pointer;border-radius:4px;transition:all .15s}.toolbar-btn:hover{background:var(--accent);border-color:var(--accent)}.toolbar-separator{width:1px;background:var(--card-border);margin:0 8px}.actions{display:flex;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--card-border)}.btn-export{background:var(--accent);color:#fff;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-size:13px}.btn-export:hover{opacity:.9}
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="toolbar"><button class="toolbar-btn" data-action="bold" title="Bold">B</button><button class="toolbar-btn" data-action="italic" title="Italic"><em>I</em></button><span class="toolbar-separator"></span><button class="toolbar-btn" data-action="h1" title="Heading 1">H1</button><button class="toolbar-btn" data-action="h2" title="Heading 2">H2</button><span class="toolbar-separator"></span><button class="toolbar-btn" data-action="link" title="Link">Link</button><button class="toolbar-btn" data-action="code" title="Code">Code</button><button class="toolbar-btn" data-action="quote" title="Quote">&gt;</button><button class="toolbar-btn" data-action="list" title="List">-</button></div><div class="editor-container"><div class="editor-pane"><div class="pane-header">Markdown</div><textarea id="md-input" placeholder="Type your markdown here..."></textarea></div><div class="editor-pane"><div class="pane-header">Preview</div><div id="preview" class="preview-pane"></div></div></div><div class="actions"><button id="export-btn" class="btn-export">Export as HTML</button></div>
+  </div>
+  <script>
+    const input=document.getElementById('md-input');const preview=document.getElementById('preview');const STORAGE_KEY='bowser-md-editor';function render(){preview.innerHTML=marked.parse(input.value||'')}function save(){localStorage.setItem(STORAGE_KEY,input.value)}function load(){const saved=localStorage.getItem(STORAGE_KEY);if(saved){input.value=saved;render()}}let saveTimeout;input.addEventListener('input',()=>{render();clearTimeout(saveTimeout);saveTimeout=setTimeout(save,500)});document.querySelectorAll('.toolbar-btn').forEach(btn=>{btn.addEventListener('click',()=>{const action=btn.dataset.action;const start=input.selectionStart;const end=input.selectionEnd;const text=input.value;const selected=text.substring(start,end);let insert='';switch(action){case'bold':insert='**'+selected+'**';break;case'italic':insert='*'+selected+'*';break;case'h1':insert='# '+selected;break;case'h2':insert='## '+selected;break;case'link':insert='['+selected+'](url)';break;case'code':insert='`'+selected+'`';break;case'quote':insert='> '+selected;break;case'list':insert='- '+selected;break}input.value=text.substring(0,start)+insert+text.substring(end);input.focus();input.setSelectionRange(start+insert.length,start+insert.length);render();save()})});document.getElementById('export-btn').addEventListener('click',()=>{const html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Exported Markdown</title></head><body style="background:#0d0d0d;color:#e0e0e0;font-family:system-ui;max-width:800px;margin:0 auto;padding:20px;">'+preview.innerHTML+'</body></html>';const blob=new Blob([html],{type:'text/html'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='document.html';a.click();URL.revokeObjectURL(a.href)});load()
+  </script>
+</body>
+</html>

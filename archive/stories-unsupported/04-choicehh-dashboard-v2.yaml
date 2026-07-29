@@ -1,0 +1,50 @@
+stories:
+  - name: "Dashboard loads with Total Revenue and YoY metrics"
+    url: "http://localhost:8000/dashboard/"
+    workflow: |
+      Navigate to http://localhost:8000/dashboard/
+      Verify the page loads with Total Revenue displayed
+      Verify the YoY Growth percentage is visible
+      Verify at least 2 charts are visible
+      Verify the period selector buttons are present in the topbar
+
+  - name: "Period selector changes dashboard data"
+    url: "http://localhost:8000/dashboard/"
+    workflow: |
+      Navigate to http://localhost:8000/dashboard/
+      Click on the 30D period button
+      Verify the charts display data
+      Click on the 7D period button
+      Verify the data updates
+
+  - name: "Navigate to Clients page with YoY"
+    url: "http://localhost:8000/dashboard/"
+    workflow: |
+      Navigate to http://localhost:8000/dashboard/
+      Click on "Clients" in the sidebar navigation
+      Verify the Clients page loads with stats
+      Verify client data is visible in the table
+
+  - name: "Navigate to Invoices page"
+    url: "http://localhost:8000/dashboard/"
+    workflow: |
+      Navigate to http://localhost:8000/dashboard/
+      Click on "Invoices" in the sidebar navigation
+      Verify the Invoices page loads with invoice table
+      Verify at least one invoice is visible in the table
+
+  - name: "Navigate to Payments page"
+    url: "http://localhost:8000/dashboard/"
+    workflow: |
+      Navigate to http://localhost:8000/dashboard/
+      Click on "Payments" in the sidebar navigation
+      Verify the Payments page loads with payment table
+      Verify payment data is visible
+
+  - name: "Navigate to Reconciliation page"
+    url: "http://localhost:8000/dashboard/"
+    workflow: |
+      Navigate to http://localhost:8000/dashboard/
+      Click on "Reconciliation" in the sidebar navigation
+      Verify the Reconciliation page loads with Total Billed and Total Paid figures
+      Verify the variance table is visible
