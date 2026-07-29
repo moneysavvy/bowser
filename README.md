@@ -75,7 +75,3 @@ justfile     operator entrypoints
 - [Demos](docs/DEMOS.md) — live demo tracks + recovery
 - [Migration](docs/MIGRATION.md) — early-2026 → July 2026 paths
 - [Troubleshooting](docs/TROUBLESHOOTING.md) — fast fixes
-
-## Master AI Agentic Coding
-
-Learn patterns with [Tactical Agentic Coding](https://agenticengineer.com/tactical-agentic-coding?y=bows) · [IndyDevDan](https://www.youtube.com/@indydevdan)
