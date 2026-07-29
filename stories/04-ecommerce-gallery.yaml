@@ -1,0 +1,9 @@
+stories:
+  - name: "Browse products and use cart"
+    url: "http://127.0.0.1:5500/04-ecommerce-gallery/"
+    workflow: |
+      Navigate to http://127.0.0.1:5500/04-ecommerce-gallery/
+      Verify the product gallery loads with at least one product card
+      If filters exist, apply one filter and verify the grid updates
+      Add one product to the cart
+      Verify the cart shows at least one item (or cart count increases)

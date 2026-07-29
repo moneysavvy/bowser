@@ -10,7 +10,8 @@
     "preflight": "bash scripts/preflight.sh",
     "preflight:strict": "BOWSER_STRICT=1 bash scripts/preflight.sh",
     "smoke": "bash scripts/smoke-cli.sh",
-    "ci": "npm run preflight:strict && npm run smoke",
+    "smoke:examples": "bash scripts/smoke-examples.sh",
+    "ci": "npm run preflight:strict && npm run smoke && npm run smoke:examples",
     "demo:qa": "just demo-qa",
     "postinstall": "playwright-cli install-browser || true"
   },

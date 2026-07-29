@@ -129,16 +129,23 @@ echo
 echo "== Secrets hygiene =="
 if [[ -f .env ]]; then
   ok ".env present (gitignored)"
+elif (( STRICT )); then
+  ok "no .env in CI/strict (expected — agent keys not required for CLI smoke)"
 else
-  warn "no .env — copy .env.sample if agent APIs are needed"
+  warn "no .env — copy .env.sample if agent demos need ANTHROPIC_API_KEY"
 fi
-if git check-ignore -q .env 2>/dev/null; then
-  ok ".env is gitignored"
+if git check-ignore -q .env 2>/dev/null || [[ ! -f .env ]]; then
+  # When .env is absent, check-ignore may fail; still verify pattern exists in .gitignore
+  if grep -qE '^\.env$' .gitignore 2>/dev/null; then
+    ok ".env is gitignored"
+  else
+    bad ".env is NOT listed in .gitignore"
+  fi
 else
-  bad ".env is NOT gitignored"
+  bad ".env exists but is NOT gitignored"
 fi
 if git ls-files --error-unmatch .claude/settings.json >/dev/null 2>&1; then
-  if grep -E 'sk-|api[_-]?key|AUTH_TOKEN' .claude/settings.json >/dev/null 2>&1; then
+  if grep -Ei 'sk-|api[_-]?key|AUTH_TOKEN|password\s*[:=]' .claude/settings.json >/dev/null 2>&1; then
     bad ".claude/settings.json contains secret-like values — remove before push"
   else
     ok ".claude/settings.json has no secret-like strings"

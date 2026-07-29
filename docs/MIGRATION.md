@@ -23,14 +23,19 @@
 
 ## Playwright CLI
 
-Install/refresh:
+Prefer the project pin (July 2026):
 
 ```bash
-npm install -g @playwright/cli@latest
-playwright-cli install-browser
+npm install
+npx playwright-cli install-browser
+# optional global: npm i -g @playwright/cli@0.1.17
 ```
 
-Bowser skills now document July 2026 CLI commands (`install-browser`, `kill-all`, dialog helpers, artifact paths).
+Remote for this fork: `origin` → `moneysavvy/bowser` only (no upstream vendor remote).
+
+## Example app URLs
+
+Stories use `http://127.0.0.1:5500/<app>/` (not `:3000`). Start with `just serve-examples`.
 
 ## Deprecated behavior
 

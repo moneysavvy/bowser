@@ -1,19 +1,19 @@
 stories:
   - name: "Add and complete a todo"
-    url: "http://localhost:3000"
+    url: "http://127.0.0.1:5500/01-todo-app/"
     workflow: |
-      Navigate to http://localhost:3000
+      Navigate to http://127.0.0.1:5500/01-todo-app/
       Verify the todo app loads with an input field
-      Type "Buy groceries" and press Enter
+      Type "Buy groceries" into the input and press Enter (or click Add)
       Verify the todo appears in the list
-      Click the todo to mark it complete
-      Verify it shows as completed (strikethrough or visual change)
+      Click the todo checkbox (or the todo) to mark it complete
+      Verify it shows as completed (strikethrough or completed style)
 
   - name: "Filter todos by status"
-    url: "http://localhost:3000"
+    url: "http://127.0.0.1:5500/01-todo-app/"
     workflow: |
-      Navigate to http://localhost:3000
-      Add multiple todos (e.g. "Task 1", "Task 2", "Task 3")
+      Navigate to http://127.0.0.1:5500/01-todo-app/
+      Add todos: "Task 1", "Task 2", "Task 3"
       Mark one or two as completed
       Click the "Active" filter
       Verify only incomplete todos are shown
@@ -23,10 +23,10 @@ stories:
       Verify all todos are shown
 
   - name: "Delete a todo"
-    url: "http://localhost:3000"
+    url: "http://127.0.0.1:5500/01-todo-app/"
     workflow: |
-      Navigate to http://localhost:3000
+      Navigate to http://127.0.0.1:5500/01-todo-app/
       Add a todo "Delete me"
       Verify it appears in the list
-      Hover over the todo and click the delete button
+      Delete the todo using the delete control
       Verify the todo is removed from the list

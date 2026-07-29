@@ -1,10 +1,10 @@
 stories:
   - name: "Send a chat message"
-    url: "http://localhost:3000"
+    url: "http://127.0.0.1:5500/02-realtime-chat/"
     workflow: |
-      Navigate to http://localhost:3000
+      Navigate to http://127.0.0.1:5500/02-realtime-chat/
       Verify the chat app loads with a username prompt or input
-      Enter username "TestUser"
+      Enter username "TestUser" and continue
       Verify the chat interface loads with a message input
       Type "Hello world!" and send
       Verify the message appears in the chat area

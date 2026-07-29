@@ -1,3 +1,9 @@
-# Kanban board tests - SKIPPED
-# No kanban application is currently deployed
-stories: []
+stories:
+  - name: "Kanban board loads with columns"
+    url: "http://127.0.0.1:5500/05-kanban-board/"
+    workflow: |
+      Navigate to http://127.0.0.1:5500/05-kanban-board/
+      Verify the kanban board loads
+      Verify columns such as Backlog, In Progress, Review, or Done are visible
+      If cards exist, verify at least one card is shown in a column
+      If drag-and-drop is available, move one card to another column and verify it moved

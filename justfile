@@ -25,10 +25,19 @@ preflight-strict:
 smoke:
     bash scripts/smoke-cli.sh
 
-# Local CI gate: strict preflight + CLI smoke
+# Serve curated examples on :5500 (python http.server)
+serve-examples port="5500":
+    python3 -m http.server {{port}} --directory examples
+
+# Smoke-load all curated example apps (starts server if needed)
+smoke-examples:
+    bash scripts/smoke-examples.sh
+
+# Local CI gate: strict preflight + CLI smoke + examples smoke
 ci:
     just preflight-strict
     just smoke
+    just smoke-examples
 
 # ─── Live demos (curated) ────────────────────────────────────
 

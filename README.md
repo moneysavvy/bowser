@@ -53,7 +53,12 @@ just demo-blog          # headless blog summarize via hop + Playwright
 
 GitHub Actions runs on `main` PRs/pushes: Node 22 → `npm ci` → `preflight:strict` → `smoke` → uploads `artifacts/playwright/`.
 
-Local equivalent: `npm run ci` or `just ci`.
+Local equivalent: `npm run ci` or `just ci` (strict preflight + CLI smoke + examples smoke).
+
+```bash
+just serve-examples     # http://127.0.0.1:5500/
+just smoke-examples     # load all curated apps
+```
 
 ## Repo map
 
